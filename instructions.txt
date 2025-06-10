@@ -1,0 +1,212 @@
+# RAG Pipeline – Next-Gen Prototype
+
+## 1  Mission Statement
+
+Build an open-source, **modular Retrieval-Augmented-Generation platform** that lets a single knowledge-worker (e.g., a Library IT professional) turn heterogeneous internal content (PDFs, office docs, presentations, emails, web pages, screenshots, etc.) into an interactive knowledge base that answers practical “how-to” questions in ≤ 5 seconds, while keeping data local and costs controllable.
+
+## 2  Guiding Principles
+
+* **Modularity first** – every capability (ingestor, chunker, embedder…) is a plug-in behind a thin interface.
+* **Source-aware processing** – choose the right chunking/OCR logic per file type.
+* **Local-first** – all raw files, indexes, and logs live on disk; cloud APIs used only for LLM/embedding when chosen by the user.
+* **User-friendly** – Streamlit UI walks the user through *Project → Dataset → Steps → Query* with sensible defaults.
+* **Extensible & agentic** – later we can drop-in new sources, models, or multi-agent workflows without refactor.
+
+## 3  Functional Scope (v0.1 Prototype)
+
+| # | Capability                | Notes                                                                                                                                     |
+| - | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 | **Project management**    | Create / load projects, YAML config per project, local paths resolved via GUI.                                                            |
+| 2 | **Data ingestion**        | Upload or drag-drop files up to **1 GB** total; initial types: TXT, PDF, PPTX, DOCX, XLSX/CSV, images (PNG/JPG), EML/MBOX, public URLs.   |
+| 3 | **Chunking engine**       | Pluggable rule-sets per type; built-ins: “PlainText-Sentences”, “PDF-Pages”, “PPT-Slide”, “Doc-Heading”, “Tabular-Row”.                   |
+| 4 | **Embedding & index**     | User selects *Local model* (e.g., `bge-large-en`) **or** *API model* (OpenAI); FAISS index per source-type, unified view via late fusion. |
+| 5 | **Retrieval & filtering** | KNN search + date filter; multilingual fallback = translate→English (via API).                                                            |
+| 6 | **Prompting layer**       | Template library: QA-with-citations (default), Summarise-dataset, Compare-sources; users can add more.                                    |
+| 7 | **Answer generation**     | OpenAI Chat (default) with pluggable LLM endpoint; returns answer + cite ids.                                                             |
+| 8 | **UI**                    | Streamlit tabs: *Datasets*, *Chunk/Index*, *Query*, *Settings*, *Logs*.                                                                   |
+| 9 | **Logging & monitoring**  | Structured logs per project/task; simple dashboard in UI.                                                                                 |
+
+## 4  High-Level Architecture
+
+```
+┌────────────┐  upload  ┌──────────────┐  chunks  ┌────────────┐
+│  Streamlit │────────►│ IngestionSvc │────────►│ ChunkEngine│
+└─────┬──────┘          └──────────────┘          └────┬──────┘
+      │ config                               embeds   │
+      ▼                                            ┌──▼──┐    queries   ┌─────────┐
+┌────────────┐   meta   ┌────────────┐ vectors ▼   │Vector│◄───────────│Retriever│
+│ConfigMgr   │────────►│ EmbedSvc   │────────────►│Store │───────────►│ & Fusion│
+└────────────┘          └────────────┘            └──┬──┘ answer ctx   └────┬────┘
+                                                    │                    │
+                                                    ▼                    │
+                                            ┌────────────┐ prompt + ctx  │
+                                            │LLM Gateway │───────────────┘
+                                            └────┬───────┘  answer
+                                                 ▼
+                                            ┌────────────┐
+                                            │Agent Hub   │ (optional)
+                                            └────────────┘
+```
+
+*All arrows are API-level interfaces; each box is an importable Python package.*
+
+## 5  Component Specs (initial contracts)
+
+### 5.1 Ingestion Service
+
+```python
+ingest(file_path: Path, project_cfg: dict) -> RawDocument
+```
+
+* Detect type, extract text/metadata, save raw copy under `/data/{project}/raw/{source_type}/`.
+* For web: download HTML + readability extraction.
+* For images: run Tesseract OCR; store extracted text + base64 preview.
+
+### 5.2 Chunk Engine
+
+```python
+chunk(doc: RawDocument, rule_set: str) -> list[Chunk]
+```
+
+* Rule-sets are Python classes in `chunk_rules/`; user’s YAML picks which set per source.
+
+### 5.3 Embedding Service
+
+* Interface `embed(texts: list[str]) -> np.ndarray`.
+* Implementations: `LocalHuggingFace`, `OpenAIEmbedding`.
+
+### 5.4 Vector Store Adapter
+
+* Default `FaissAdapter`.  Interface hides index-type so swapping to pgvector is one file.
+
+### 5.5 Retrieval & Fusion
+
+* `retrieve(query, k, filters) -> list[Chunk]` (source-specific KNN → score re-rank → merge).
+
+### 5.6 LLM Gateway
+
+* Wrapper around chat/completions with retry, cost-tracking, streaming to UI.
+
+### 5.7 Agent Hub (stretch-goal)
+
+* **Source Selector Agent** chooses which indexes to hit.
+* **Validator Agent** verifies answer faithfulness via second pass.
+
+### 5.8 Config Manager
+
+* YAML schema validation; CLI + UI wizard.
+
+### 5.9 Logging
+
+* `logger = get_logger(project, component)` → writes to `/logs/{project}/YYYY-MM-DD.log`.
+
+## 6  Technology Stack
+
+* **Python 3.12**, **Streamlit 1.35** for UI.
+* Parsing libs: `pdfplumber`, `python-pptx`, `python-docx`, `pandas`, `readability-lxml`, `tesserocr`.
+* Embeddings: HuggingFace `sentence-transformers`, OpenAI, future Google Vertex, Anthropic, etc.
+* Agentic: start simple (no external framework); later integrate `LangChain Agents` or `Crew-AI`.
+* Packaging & linting: `poetry`, `ruff`, `mypy`.
+
+## 7  Milestone Roadmap (8 Weeks)
+
+| Week | Deliverables                                                                                   |
+| ---- | ---------------------------------------------------------------------------------------------- |
+| 1    | Git repo skeleton, Config Manager, Streamlit project wizard, TXT/PDF ingestor + plain chunker. |
+| 2    | FAISS adapter, Local embedding (bge-large-en) integration, simple retrieval demo.              |
+| 3    | Add DOCX, PPTX, XLSX ingestors; rule-set plugin framework; UI upload panel.                    |
+| 4    | Image OCR ingestion; metadata & date filters; unified late-fusion retrieval.                   |
+| 5    | OpenAI embedding + LLM gateway; QA prompt template; answer display with citations.             |
+| 6    | Email (.eml/.mbox) ingestion; web URL crawler; multilingual fallback via translation API.      |
+| 7    | Agent Hub POC (source selector + validator); logging dashboard; basic unit-test suite.         |
+| 8    | Performance tuning (<5 s), docs (dev & user), 0.1 release tag.                                 |
+
+## 8  Risks & Mitigations
+
+* **OCR quality** → allow manual correction sidebar.
+* **Index growth beyond RAM** → chunk-size tuning + option to swap FAISS for disk-backed store.
+* **Model cost spikes** → cost estimator in UI before embedding large batches.
+
+## 9  Future Extensions
+
+* Word/Excel formulas parsing, audio transcript ingestion, SharePoint crawler, multi-user auth.
+* Replace Streamlit with Next.js front-end; Docker deployment; scheduled dataset refresh.
+
+---
+
+*Last updated 2025-06-10.*
+
+## 10  Repository / Codebase Structure
+
+A clear, conventional layout makes it easy for contributors—human **and** AI—to navigate and extend the project. Below is the proposed top-level tree followed by key conventions.
+
+```text
+rag-pipeline/
+├── app/                 # User-facing entrypoints (CLI & Streamlit)
+│   ├── cli.py           # Rich-CLI powered by Typer
+│   └── ui_streamlit.py  # Streamlit dashboard
+├── scripts/             # Core library package (installable)
+│   ├── __init__.py
+│   ├── ingestion/       # Loader classes per source-type
+│   │   ├── base.py      # AbstractIngestor
+│   │   ├── pdf.py       # PDFPlumberIngestor
+│   │   ├── pptx.py      # PptxIngestor
+│   │   ├── docx.py      # DocxIngestor
+│   │   ├── image.py     # OCRIngestor (tesserocr)
+│   │   └── web.py       # UrlIngestor (readability-lxml)
+│   ├── chunking/
+│   │   ├── base.py      # AbstractChunker
+│   │   ├── rules/
+│   │   │   ├── plaintext.py
+│   │   │   ├── pdf_pages.py
+│   │   │   ├── ppt_slide.py
+│   │   │   └── doc_heading.py
+│   ├── embeddings/
+│   │   ├── base.py      # AbstractEmbedder
+│   │   ├── local_bge.py
+│   │   └── openai.py
+│   ├── index/
+│   │   ├── base.py      # VectorStore interface
+│   │   └── faiss_adapter.py
+│   ├── retrieval/
+│   │   ├── hybrid.py    # Late-fusion retriever
+│   │   ├── filters.py   # Date & metadata filters
+│   │   └── rankers.py   # Optional rerank step
+│   ├── prompting/
+│   │   ├── templates/
+│   │   │   ├── qa_default.jinja
+│   │   │   ├── summarise.jinja
+│   │   │   └── compare.jinja
+│   │   └── gateway.py   # LLMGateway (OpenAI, Anthropic, Google)
+│   ├── agents/          # Stretch-goal multi-agent workflows
+│   └── utils/           # Logger, cost tracker, registry helpers
+├── configs/
+│   ├── settings.yaml    # Global defaults (paths, OCR language)
+│   ├── datasets/        # <dataset>.yaml (upload & chunk config)
+│   └── tasks/           # <task>.yaml (models, retriever, prompt)
+├── data/                # Local storage (git-ignored)
+│   ├── raw/
+│   ├── processed/
+│   ├── chunks/
+│   └── indexes/
+├── tests/               # Pytest suite mirroring scripts/
+│   └── integration/
+├── docs/                # Markdown design docs & diagrams
+├── assets/              # Sample files for demos & tests
+├── requirements.txt     # Quick setup pin-list
+├── pyproject.toml       # Build & dependency management (Poetry)
+└── README.md            # Quick-start instructions
+```
+
+### 10.1  Design Conventions
+
+* **`scripts/` is a namespace package** – install with `pip install -e .`; keep all business logic here.
+* **Pluggability** – each sub-package exposes a `registry.py`; new classes register via `@registry.register` decorator and become auto-discoverable.
+* **Config-driven** – mapping from dataset/task YAML → factories resolve appropriate ingestor, chunker, embedder, etc.
+* **Data isolation** – every project creates its own sub-folders under `data/` and `logs/` to avoid clashes.
+* **Testing parity** – tests mirror package tree; integration tests spin up a tiny fixture dataset (≤ 1 MB) to run end-to-end.
+* **Doc cross-refs** – design docs reference code with relative links so GitHub renders them nicely.
+
+---
+
+*Last updated 2025-06-10.*
