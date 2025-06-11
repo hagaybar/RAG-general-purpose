@@ -106,7 +106,7 @@ outputs/
 *.index
 
 # Entire test suite (excluded by request)
-tests/
+# tests/
 
 ###############################################################################
 #  End                                                                        #
