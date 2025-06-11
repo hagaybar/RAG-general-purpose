@@ -196,6 +196,9 @@ rag-pipeline/
 ├── requirements.txt     # Quick setup pin-list
 ├── pyproject.toml       # Build & dependency management (Poetry)
 └── README.md            # Quick-start instructions
+│  
+├── outputs/
+
 ```
 
 ### 10.1  Design Conventions
