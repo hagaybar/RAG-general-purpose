@@ -34,3 +34,12 @@ def load_docx(path: str | pathlib.Path) -> tuple[str, dict]:
 
     metadata = {"source": str(path), "content_type": "docx"}
     return processed_text, metadata
+
+if __name__ == "__main__":
+    # Example usage
+    path = r"C:\git projects\RAG-general-purpose\tests\fixtures\docx\Document.docx"
+    text, metadata = load_docx(path)
+    print("Extracted Text:")
+    print(text)
+    print("\nMetadata:")
+    print(metadata)
