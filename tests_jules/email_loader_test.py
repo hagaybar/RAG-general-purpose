@@ -1,7 +1,15 @@
 import unittest
-from scripts.ingestion.email_loader import load_eml
 import os
 from pathlib import Path
+import sys
+import os
+
+
+# Go up one level from tests_jules to the project root
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+from scripts.ingestion.email_loader import load_eml
+
 
 class TestEmailLoader(unittest.TestCase):
     def setUp(self):
