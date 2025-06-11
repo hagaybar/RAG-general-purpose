@@ -1,0 +1,118 @@
+# RAG Pipeline Project – Workflow Roadmap
+
+> **Timeline:** 8 weeks (≈ Jun 11 → Aug 6, 2025)
+> **Goal:** Working local‑first RAG prototype that answers mixed‑doc queries with citations in ≤ 5 s.
+
+---
+
+## 0   Kick‑off & Plumbing   (½ week)
+
+* Draft scope, success metrics, data sources.
+* Hard repo rules: `.gitignore`, Poetry, Ruff + Black, Mypy, pre‑commit, GitHub Actions CI.
+* Agree branching policy & PR checklist.
+
+## 1   Ingestion Layer
+
+* Port email loaders.
+* Add loaders: **DOCX, PPTX, images (OCR)**.
+* Draft chunking rule‑sets per type.
+
+## 2   Embed + Store
+
+* `ChunkEmbedder` batching & cumulative FAISS updates.
+* Duplicate‑check logic.
+
+## 3   Retrieval API
+
+* `ChunkRetriever` with date filters & late‑fusion by type.
+* Top‑*k* tuning script.
+
+## 4   Prompt & Evaluation Harness
+
+* QA‑with‑citations template library.
+* Synthetic test suite; nightly evaluation job.
+
+## 5   UI & Orchestration
+
+* Streamlit MVP: Query tab, config manager, run‑log viewer.
+
+## 6   Agent Integration & Logging
+
+* Wire **Google Jules** into CI (feature branches only).
+* Structured logging module; coloured console / JSON file output.
+
+## 7   Performance & Safeguards
+
+* Stress‑test on 1 GB corpus.
+* Cost model; failure‑handling & feature flags.
+
+## 8   Hardening & Demo Prep
+
+* Freeze feature work, bug‑bash.
+* Polish docs, create demo dataset & walkthrough.
+
+---
+
+## Daily Rhythm (Mon–Fri)
+
+| Time (approx.)  | Activity                                                                                    |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| **09:30**       | Stand‑up / triage – review yesterday’s PRs & failing tests.                                 |
+| **10:00**       | Ticket grooming (15 min) – split issues, label `assign-to-jules`.                           |
+| **10:15–13:00** | Deep‑work block – manual coding & Jules branches run in parallel.                           |
+| **13:00**       | **Jules PR review** – verify diff, run static analysis, comment; merge only on green tests. |
+| **14:00–16:30** | Integration & smoke tests on fixture dataset; deploy to staging.                            |
+| **16:30**       | Retro log (≤ 5 min) – append lessons‑learned to `docs/logs/YYYY‑MM‑DD.md`.                  |
+
+---
+
+## Jules Guard‑Rails
+
+| Risk                       | Mitigation                                                             |
+| -------------------------- | ---------------------------------------------------------------------- |
+| Over‑eager refactors       | Pin Jules to *feature* branches; block from `main`/`prod`.             |
+| Silent test failures       | CI gate: `pytest && coverage ≥ 90 %`.                                  |
+| Architectural drift        | Require approved design‑doc comment before applying `assign-to-jules`. |
+| Debugging black‑box output | PR template must include Jules plan summary for traceability.          |
+
+---
+
+## Toolchain & Automation Checklist
+
+* **Poetry** – deterministic envs; `poetry version` for bumps.
+* **Ruff + Black** – fast lint/format (pre‑commit).
+* **Mypy** – ≥ 90 % typed functions.
+* **Pytest** – unit + tiny E2E fixtures (≤ 50 ms each); mark slow tests.
+* **GitHub Actions** – CI workflow:
+
+  ```yaml
+  jobs:
+    test:
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v5
+        - run: poetry install --with dev
+        - run: poetry run pytest
+  ```
+* **Nightly cron** – run evaluation harness on full corpus; post metrics badge to README.
+* **Issue labels** – `type:ingest`, `type:retrieval`, `tech‑debt`, `assign-to-jules`.
+
+---
+
+## Definition of Done (per task)
+
+1. Code + docstrings + type hints.
+2. Unit tests: ≥ 1 happy path & ≥ 1 edge case.
+3. Entry in `CHANGELOG.md`.
+4. PR description follows template: *Context → Changes → How to test*.
+5. CI green; human reviewer ✅.
+
+---
+
+### Friday Demo Cadence
+
+Every Friday aim to show a **thin vertical slice** (e.g., Week 2 = ingest‑embed‑retrieve on toy corpus) to keep momentum and surface integration issues early.
+
+---
+
+*Last updated: 2025‑06‑11*
