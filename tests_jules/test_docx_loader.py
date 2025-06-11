@@ -1,7 +1,13 @@
 import pathlib
 import pytest
-# Assuming scripts.ingestion.docx_loader is accessible in the python path
-# If not, the subtask might need to adjust sys.path or this import.
+import sys
+import os
+
+
+# Go up one level from tests_jules to the project root
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
 from scripts.ingestion.docx_loader import load_docx
 
 # Define the paths to the new test fixture files
