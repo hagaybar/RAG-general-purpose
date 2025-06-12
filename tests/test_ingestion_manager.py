@@ -1,6 +1,13 @@
 import pathlib
 import pytest
 
+import sys
+import os
+
+# Go up one level from tests to the project root
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, project_root)
+
 from scripts.ingestion.manager import IngestionManager
 from scripts.ingestion.models import RawDoc
 
