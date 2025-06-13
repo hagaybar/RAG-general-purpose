@@ -27,4 +27,4 @@ def test_ingest_cli_end_to_end(tmp_path):
 
     # 3. Assertions
     assert result.exit_code == 0, result.stdout
-    assert any(term in result.stdout for term in ("3 docs", "3 documents"))
+    assert "Ingested 3" in result.stdout
