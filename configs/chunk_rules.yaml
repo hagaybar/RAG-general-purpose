@@ -35,8 +35,9 @@ xml:
   min_chunk_size: 600
   notes: maintain element hierarchy, include headers
 pptx:
-  split_strategy: split_on_slides
-  min_chunk_size: 400
+  split_strategy: by_slide
+  token_bounds: [200, 800]
+  overlap: 0
   notes: one chunk per slide, include headers
 xlsx:
   split_strategy: split_on_sheets
