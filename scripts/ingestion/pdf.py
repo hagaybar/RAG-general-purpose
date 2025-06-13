@@ -44,7 +44,7 @@ def load_pdf(path: str | Path) -> RawDoc:
                 "num_pages": len(pdf.pages),
             }
 
-            return RawDoc(content=full_text, metadata=metadata)
+            return full_text, metadata
 
     except FileNotFoundError as e: # If the file itself is not found
         raise # The test expects FileNotFoundError to be propagated.
