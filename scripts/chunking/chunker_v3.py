@@ -12,6 +12,9 @@ import re
 from typing import Any, Dict, List
 from .models import Chunk
 
+from scripts.chunking.rules_v3 import get_rule
+
+
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
 
 
