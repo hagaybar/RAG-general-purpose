@@ -7,7 +7,8 @@ def test_split_enforces_max_tokens():
     doc = "\n\n".join([para] * 10)
 
     # txt strategy allows only 100 tokens max per chunk
-    meta = {"doc_type": "txt"}
+    meta = {"doc_type": "test_txt_small"}
+
 
     chunks = split(doc, meta)
 
