@@ -32,13 +32,13 @@ pdf:
 # === PowerPoint ===
 pptx:
   strategy: by_slide
-  min_tokens: 200
+  min_tokens: 100
   max_tokens: 800
   overlap: 0
 
 # === Plain text ===
 txt:
-  strategy: split_on_blank_lines
+  strategy: by_paragraph
   min_tokens: 40
   max_tokens: 300
   overlap: 15
@@ -48,61 +48,61 @@ txt:
 # group related rows, detect delimiter automatically, include headers
 csv:
   strategy: split_on_rows
-  min_tokens: 1000
-  max_tokens: 1160
+  min_tokens: 150
+  max_tokens: 800
   overlap: 20
 
 # preserve semantic structure, include headers
 html:
   strategy: split_on_headings
-  min_tokens: 600
+  min_tokens: 150
   max_tokens: 760
   overlap: 20
 
 # preserve object integrity, exclude headers/footers
 json:
   strategy: split_on_objects
-  min_tokens: 300
+  min_tokens: 150
   max_tokens: 460
   overlap: 20
 
 # group by time periods, exclude headers/footers
 log:
   strategy: split_on_timestamp
-  min_tokens: 500
+  min_tokens: 180
   max_tokens: 660
   overlap: 20
 
 # markdown-aware splitting, include headers
 md:
   strategy: split_on_headings
-  min_tokens: 500
+  min_tokens: 150
   max_tokens: 660
   overlap: 20
 
 # preserve function boundaries, exclude headers/footers
 py:
   strategy: split_on_functions
-  min_tokens: 300
+  min_tokens: 150
   max_tokens: 460
   overlap: 20
 
 # separate sheets, preserve structure, include headers
 xlsx:
   strategy: split_on_sheets
-  min_tokens: 1200
-  max_tokens: 1360
+  min_tokens: 150
+  max_tokens: 800
   overlap: 20
 
 # maintain element hierarchy, include headers
 xml:
   strategy: split_on_elements
-  min_tokens: 600
+  min_tokens: 150
   max_tokens: 760
   overlap: 20
 
 default:
-  strategy: paragraph
+  strategy: by_paragraph
   min_tokens: 50
   max_tokens: 250
   overlap: 20
