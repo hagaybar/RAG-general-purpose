@@ -27,7 +27,7 @@ def test_ingest_cli_end_to_end(tmp_path):
 
     # 2. Invoke: rag ingest <folder> --chunk
     # Corrected invocation:
-    result = runner.invoke(app, ["ingest", str(work_dir), "--chunk"])
+    result = runner.invoke(app, [str(work_dir), "--chunk"])
 
     # 3. Assertions
     assert result.exit_code == 0, result.stdout
