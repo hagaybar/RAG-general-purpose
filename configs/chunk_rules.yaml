@@ -43,6 +43,15 @@ txt:
   max_tokens: 300
   overlap: 15
 
+# === test rule ===
+
+test_txt_small:
+  strategy: blank_line
+  min_tokens: 30
+  max_tokens: 100
+  overlap: 0
+
+
 # New blocks from File A (alphabetical order)
 
 # group related rows, detect delimiter automatically, include headers
