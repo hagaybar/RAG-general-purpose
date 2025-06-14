@@ -54,7 +54,7 @@ class TestChunkerEml(unittest.TestCase):
             "It should be treated as such by the fallback mechanism." # approx 14 tokens
         )
 
-    @patch('scripts.chunking.chunker.get_rule')
+    @patch("scripts.chunking.rules.get_rule")
     def test_eml_by_email_block_strategy(self, mock_get_rule):
         mock_get_rule.return_value = self.eml_rule_low_min # min_tokens=5 to keep initial blocks separate
         doc_meta = {'doc_type': 'eml'}
@@ -104,7 +104,7 @@ class TestChunkerEml(unittest.TestCase):
                 self.assertEqual(current_chunk_tokens[:actual_overlap_count], expected_overlap_words,
                                  f"Overlap mismatch between chunk {i-1} and chunk {i}")
 
-    @patch('scripts.chunking.chunker.get_rule')
+    @patch("scripts.chunking.rules.get_rule")
     def test_eml_fallback_to_by_paragraph(self, mock_get_rule):
         mock_get_rule.return_value = self.eml_rule # min_tokens=30
         doc_meta = {'doc_type': 'eml'}
@@ -129,7 +129,7 @@ class TestChunkerEml(unittest.TestCase):
         self.assertTrue(token_cnt <= self.eml_rule.max_tokens if self.eml_rule.max_tokens else True)
         self.assertEqual(token_cnt, 19 + 14) # 33 tokens
 
-    @patch('scripts.chunking.chunker.get_rule')
+    @patch("scripts.chunking.rules.get_rule")
     def test_eml_merging_and_token_limits(self, mock_get_rule):
         # Use self.eml_rule: min_tokens=30, max_tokens=250, overlap=10
         mock_get_rule.return_value = self.eml_rule
