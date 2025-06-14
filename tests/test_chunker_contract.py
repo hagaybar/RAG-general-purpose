@@ -1,25 +1,24 @@
+# tests/test_chunker_contract.py
 import inspect
-from typing import get_origin, List
+from typing import get_origin
 
 import pytest
 
 from scripts.chunking.chunker_v3 import split
+from scripts.chunking.models import Chunk
 
 
 def test_split_signature():
-    """Public API must stay (text: str, meta: dict) -> iterable."""
     sig = inspect.signature(split)
     params = list(sig.parameters.values())
-    assert [p.name for p in params] == ["text", "meta"], "Keep the two-arg interface"
+    assert [p.name for p in params] == ["text", "meta"]
 
-    # Accept  → list | List[...] | Sequence[...] | no annotation
     origin = get_origin(sig.return_annotation) or sig.return_annotation
-    assert origin in (list, inspect._empty), "Return should be list-like"
+    assert origin in (list, inspect._empty)
 
 
 def test_split_runtime_shape():
-    """split() should return a non-empty list for simple input."""
-    text = "A.\n\nB."
-    chunks = split(text, {"doc_type": "txt"})
+    chunks = split("A.\n\nB.", {"doc_type": "txt"})
     assert isinstance(chunks, list)
-    assert chunks == ["A.", "B."]      # strict for now
+    assert all(isinstance(c, Chunk) for c in chunks)
+    assert [c.text for c in chunks] == ["A.", "B."]

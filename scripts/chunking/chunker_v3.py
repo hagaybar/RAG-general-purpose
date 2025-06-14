@@ -10,22 +10,30 @@ For this initial step we:
 
 import re
 from typing import Any, Dict, List
+from .models import Chunk
 
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
 
-def split(text: str, meta: Dict[str, Any]) -> List[str]:
-    """Split document into paragraph chunks (MVP).
 
-    Args:
-        text: Raw document text
-        meta: Loader-supplied metadata (currently unused)
 
-    Returns:
-        List of paragraph strings (whitespace-stripped, empty paras removed)
-    """
-    paragraphs = [
+# --- helpers -----------------------------------------------------------------
+def _token_count(text: str) -> int:
+    """Very rough token counter; will be replaced by real tokenizer later."""
+    return len(text.split())
+
+
+# --- public API --------------------------------------------------------------
+def split(text: str, meta: Dict[str, Any]) -> List[Chunk]:
+    """Split document into Chunk objects, one per paragraph."""
+    raw_paras = [
         p.strip()
         for p in PARA_REGEX.split(text.strip())
-        if p.strip()  # drop empty chunks
+        if p.strip()
     ]
-    return paragraphs
+
+    return [
+        Chunk(text=p,
+              meta=meta.copy(),
+              token_count=_token_count(p))
+        for p in raw_paras
+    ]
