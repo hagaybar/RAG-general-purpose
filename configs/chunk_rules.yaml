@@ -1,68 +1,46 @@
-email:
-  split_strategy: split_on_blank_lines
-  min_chunk_size: 500
-  notes: ignore quoted replies, exclude headers/footers
-docx:
-  split_strategy: by_paragraph
-  min_tokens: 50
-  max_tokens: 300
-  overlap: 20
-  notes: "Uses by_paragraph strategy."
-pdf:
-  split_strategy: by_paragraph
-  min_tokens: 50
-  max_tokens: 300
-  overlap: 20
-  notes: "Uses by_paragraph strategy."
-txt:
-  split_strategy: split_on_blank_lines
-  min_chunk_size: 400
-  notes: simple text processing, exclude headers/footers
-html:
-  split_strategy: split_on_headings
-  min_chunk_size: 600
-  notes: preserve semantic structure, include headers
-md:
-  split_strategy: split_on_headings
-  min_chunk_size: 500
-  notes: markdown-aware splitting, include headers
-csv:
-  split_strategy: split_on_rows
-  min_chunk_size: 1000
-  notes: group related rows, detect delimiter automatically, include headers
-json:
-  split_strategy: split_on_objects
-  min_chunk_size: 300
-  notes: preserve object integrity, exclude headers/footers
-xml:
-  split_strategy: split_on_elements
-  min_chunk_size: 600
-  notes: maintain element hierarchy, include headers
-pptx:
-  split_strategy: by_slide
-  min_tokens: 200
-  max_tokens: 800
-  overlap: 0
-  notes: one chunk per slide, include headers
-xlsx:
-  split_strategy: split_on_sheets
-  min_chunk_size: 1200
-  notes: separate sheets, preserve structure, include headers
-rtf:
-  split_strategy: split_on_headings
-  min_chunk_size: 600
-  notes: similar to docx handling, include headers
-log:
-  split_strategy: split_on_timestamp
-  min_chunk_size: 500
-  notes: group by time periods, exclude headers/footers
-py:
-  split_strategy: split_on_functions
-  min_chunk_size: 300
-  notes: preserve function boundaries, exclude headers/footers
+# chunk_rules.yml
+# Only formats with working loaders & chunker strategies are included.
+# Extend when a new loader/strategy lands.
+
+# === E-mail ===
 eml:
-  split_strategy: by_email_block
+  strategy: by_email_block        # implemented in BaseChunker
   min_tokens: 30
   max_tokens: 250
   overlap: 10
-  notes: "Uses by_email_block strategy, fallback to by_paragraph."
+  notes: split on reply blocks; fallback to paragraph
+
+# === Word Processing ===
+docx:
+  strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+  notes: paragraph-aware splitting
+
+rtf:  # handled via the docx loader path
+  strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+
+# === PDFs ===
+pdf:
+  strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+
+# === PowerPoint ===
+pptx:
+  strategy: by_slide              # one chunk per slide
+  min_tokens: 200
+  max_tokens: 800
+  overlap: 0
+
+# === Plain text ===
+txt:
+  strategy: split_on_blank_lines  # implemented
+  min_tokens: 40                  # after blank-line split, enforce bounds
+  max_tokens: 300
+  overlap: 15
