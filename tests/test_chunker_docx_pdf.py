@@ -2,6 +2,9 @@ import unittest
 from unittest.mock import patch
 from scripts.chunking.chunker_v2 import BaseChunker, Chunk
 from scripts.chunking.rules import ChunkRule, get_rule # Ensure get_rule can be patched if needed, or rules are directly constructed
+import pytest
+
+pytestmark = pytest.mark.legacy_chunker
 
 # Helper function to count tokens (consistent with chunker's method)
 def count_tokens(text: str) -> int:

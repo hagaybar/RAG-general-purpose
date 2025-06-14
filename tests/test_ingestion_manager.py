@@ -4,12 +4,15 @@ import pytest
 import sys
 import os
 
+
 # Go up one level from tests to the project root
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from scripts.ingestion.manager import IngestionManager
 from scripts.ingestion.models import RawDoc
+
+pytestmark = pytest.mark.legacy_chunker
 
 # Define the fixture path relative to this test file
 FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures" / "ingestion_test_data"

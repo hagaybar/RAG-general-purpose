@@ -3,6 +3,9 @@ import pytest
 import sys
 import os
 
+pytestmark = pytest.mark.legacy_chunker
+
+
 
 # Go up one level from tests to the project root
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

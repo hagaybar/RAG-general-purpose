@@ -8,6 +8,9 @@ from pptx.enum.shapes import MSO_SHAPE
 from scripts.ingestion.pptx import PptxIngestor
 from scripts.ingestion.models import UnsupportedFileError
 
+import pytest
+# pytest is used for marking the test as legacy_chunker
+pytestmark = pytest.mark.legacy_chunker
 
 class TestPptxIngestor(unittest.TestCase):
 
