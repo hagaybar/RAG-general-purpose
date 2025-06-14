@@ -3,13 +3,17 @@ email:
   min_chunk_size: 500
   notes: ignore quoted replies, exclude headers/footers
 docx:
-  split_strategy: split_on_headings
-  min_chunk_size: 700
-  notes: collapse tables row-wise, include headers
+  split_strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+  notes: "Uses by_paragraph strategy."
 pdf:
-  split_strategy: split_on_pages
-  min_chunk_size: 800
-  notes: preserve page boundaries, include headers/footers
+  split_strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+  notes: "Uses by_paragraph strategy."
 txt:
   split_strategy: split_on_blank_lines
   min_chunk_size: 400
@@ -36,7 +40,8 @@ xml:
   notes: maintain element hierarchy, include headers
 pptx:
   split_strategy: by_slide
-  token_bounds: [200, 800]
+  min_tokens: 200
+  max_tokens: 800
   overlap: 0
   notes: one chunk per slide, include headers
 xlsx:
@@ -55,3 +60,9 @@ py:
   split_strategy: split_on_functions
   min_chunk_size: 300
   notes: preserve function boundaries, exclude headers/footers
+eml:
+  split_strategy: by_email_block
+  min_tokens: 30
+  max_tokens: 250
+  overlap: 10
+  notes: "Uses by_email_block strategy, fallback to by_paragraph."

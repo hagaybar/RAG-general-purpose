@@ -7,9 +7,9 @@ from typing import Optional, List  # Added List and Optional
 @dataclass
 class ChunkRule:
     split_strategy: str
-    # e.g., [200, 800] or from min_chunk_size
-    token_bounds: Optional[List[int]] = None
-    overlap: Optional[int] = None
+    min_tokens: int | None = None
+    max_tokens: int | None = None
+    overlap: int | None = None  # Ensuring type hint is consistent
     notes: Optional[str] = None
     # Keep for compatibility if some rules still use it
     min_chunk_size: Optional[int] = None
