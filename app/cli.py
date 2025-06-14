@@ -4,7 +4,7 @@ import json  # Added import
 import csv  # Added import
 
 from scripts.ingestion.manager import IngestionManager
-from scripts.chunking.chunker import BaseChunker, Chunk  # Added import
+from scripts.chunking.chunker_v2 import BaseChunker, Chunk  # Added import
 
 
 app = typer.Typer()
