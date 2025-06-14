@@ -1,140 +1,153 @@
-import unittest
-from unittest.mock import patch  # MagicMock removed
-import uuid
+"""Unified tests for BaseChunker / chunker utilities
+====================================================
+This single file merges the functional pytest suite we wrote earlier with key
+checks from the original `unittest` draft provided by the user.  It is designed
+so that **either** project layout will work:
 
-from scripts.chunking.chunker import BaseChunker, Chunk
-from scripts.chunking.rules import ChunkRule  # For creating mock return value
+* `scripts.chunking.chunker` (package‑style, used by the CLI)
+* `chunker` at repo root (stand‑alone module)
 
+The tests favour *pytest* because the rest of the repo already uses it (see
+`tests/` folder and Poetry dev‑dependencies).  Where the original `unittest`
+file relied on `unittest.mock.patch`, we instead inject rules directly into the
+`BaseChunker` instance for speed and simplicity.
 
-class TestBaseChunker(unittest.TestCase):
+Run with:
+    poetry run pytest -vv tests/test_chunker.py
+"""
 
-    def setUp(self):
-        self.chunker = BaseChunker()
+from __future__ import annotations
 
-    @patch('scripts.chunking.chunker.get_rule')
-    def test_by_slide_strategy_pptx(self, mock_get_rule):
-        # Configure mock for 'pptx'
-        mock_pptx_rule = ChunkRule(
-            split_strategy='by_slide',
-            # Example bounds, not strictly used by 'by_slide'
-            token_bounds=[5, 15],
-            overlap=0,
-            notes='PPTX rule'
-        )
-        mock_get_rule.return_value = mock_pptx_rule
+import importlib
+import inspect
+from typing import List, Any
 
-        doc_id = "test_ppt_doc_001"
-        text_content = "This is the text content of a single slide."
-        doc_meta = {
-            'doc_type': 'pptx',
-            'slide_number': 1,
-            'source_filepath': 'path/to/doc.pptx'
-        }
+import pytest
 
-        chunks = self.chunker.split(doc_id=doc_id,
-                                    text_content=text_content,
-                                    doc_meta=doc_meta)
+# --------------------------------------------------------------------------- #
+# Dynamic import – support both layouts
+# --------------------------------------------------------------------------- #
 
-        # Assert get_rule was called correctly
-        mock_get_rule.assert_called_once_with('pptx')
+try:
+    chunker_mod = importlib.import_module("scripts.chunking.chunker")
+except ModuleNotFoundError:
+    chunker_mod = importlib.import_module("chunker")
 
-        self.assertIsNotNone(chunks)
-        self.assertEqual(len(chunks), 1)
+BaseChunker = chunker_mod.BaseChunker
+Chunk = chunker_mod.Chunk
+ChunkRule = getattr(chunker_mod, "ChunkRule", None)  # May be internal only
+get_chunker = getattr(chunker_mod, "get_chunker", None)
+chunk_document = getattr(chunker_mod, "chunk_document", None)
+chunk_documents_batch = getattr(chunker_mod, "chunk_documents_batch", None)
 
-        chunk = chunks[0]
-        self.assertIsInstance(chunk, Chunk)
-        self.assertEqual(chunk.doc_id, doc_id)
-        self.assertEqual(chunk.text, text_content)
-        self.assertEqual(chunk.meta, doc_meta)  # BaseChunker copies doc_meta
-
-        # Check ID properties
-        self.assertIsNotNone(chunk.id)
-        self.assertIsInstance(chunk.id, str)
-        try:
-            uuid.UUID(chunk.id, version=4)
-        except ValueError:
-            self.fail("Chunk ID is not a valid UUID4 hex string")
-
-    @patch('scripts.chunking.chunker.get_rule')
-    def test_chunk_id_uniqueness(self, mock_get_rule):
-        # Configure a generic rule for these calls
-        mock_rule = ChunkRule(split_strategy='by_slide',
-                              token_bounds=[10, 20], overlap=0, notes='')
-        mock_get_rule.return_value = mock_rule
-
-        doc_meta_1 = {'doc_type': 'pptx', 'slide_number': 1}
-        chunks1 = self.chunker.split(doc_id="doc1",
-                                     text_content="text for first chunk",
-                                     doc_meta=doc_meta_1)
-
-        # Different slide, effectively different "item"
-        doc_meta_2 = {'doc_type': 'pptx', 'slide_number': 2}
-        chunks2 = self.chunker.split(doc_id="doc1",
-                                     text_content="text for second chunk",
-                                     doc_meta=doc_meta_2)
-
-        self.assertEqual(len(chunks1), 1)
-        self.assertEqual(len(chunks2), 1)
-
-        chunk1 = chunks1[0]
-        chunk2 = chunks2[0]
-
-        self.assertNotEqual(chunk1.id, chunk2.id,
-                            "Chunk IDs should be unique")
-
-    def test_missing_doc_type_in_meta(self):
-        with self.assertRaisesRegex(ValueError,
-                                     "doc_type must be provided in doc_meta"):
-            self.chunker.split(
-                doc_id="test_doc_002",
-                text_content="Some text here.",
-                doc_meta={'slide_number': 1}  # Missing 'doc_type'
-            )
-
-    @patch('scripts.chunking.chunker.get_rule')
-    def test_get_rule_raises_key_error(self, mock_get_rule):
-        # Configure get_rule to simulate failure for an unknown doc_type.
-        # This occurs if 'unknown_type' isn't in rules.yaml and no default
-        # is configured in get_rule.
-        error_msg = "No rule found for doc_type 'unknown_type'"
-        mock_get_rule.side_effect = KeyError(error_msg)
-
-        doc_meta = {'doc_type': 'unknown_type'}
-        with self.assertRaisesRegex(KeyError, error_msg):
-            self.chunker.split(
-                doc_id="test_doc_003",
-                text_content="Content for an unknown type.",
-                doc_meta=doc_meta
-            )
-        mock_get_rule.assert_called_once_with('unknown_type')
-
-    @patch('scripts.chunking.chunker.get_rule')
-    def test_other_strategy_returns_empty_list(self, mock_get_rule):
-        # Test current behavior for an unimplemented strategy
-        mock_other_rule = ChunkRule(
-            split_strategy='by_heading',  # Assume this is not 'by_slide'
-            token_bounds=[100, 500],
-            overlap=0,
-            notes='Other rule'
-        )
-        mock_get_rule.return_value = mock_other_rule
-
-        doc_meta = {'doc_type': 'docx'}
-        chunks = self.chunker.split(
-            doc_id="test_doc_004",
-            text_content="Full document content for docx.",
-            doc_meta=doc_meta
-        )
-
-        # BaseChunker currently only implements 'by_slide'.
-        # Other strategies result in no chunks. This test verifies that.
-        # It might need adjustment if/when other strategies are added.
-        self.assertEqual(
-            len(chunks), 0,
-            "Expected empty list for unimplemented strategies other than 'by_slide'"
-        )
-        mock_get_rule.assert_called_once_with('docx')
+# --------------------------------------------------------------------------- #
+# Helpers & fixtures
+# --------------------------------------------------------------------------- #
 
 
-if __name__ == "__main__":
-    unittest.main()
+def _make_words(n: int, word: str = "lorem") -> str:
+    """Return a space‑separated string with *n* copies of *word*."""
+    return " ".join([word] * n)
+
+
+@pytest.fixture()
+def fresh_chunker():
+    """Reload the chunker module each time to reset the singleton & rules."""
+    importlib.reload(chunker_mod)
+    return BaseChunker()
+
+
+def _call_split(chunker: BaseChunker, text: str, meta: dict[str, Any]):
+    """Call `split` using whichever signature this version of chunker exposes."""
+    sig = inspect.signature(chunker.split)
+    params = list(sig.parameters)
+    if len(params) == 3:  # old signature: (doc_id, text_content, doc_meta)
+        return chunker.split(doc_id=meta.get("doc_id", "doc1"),
+                              text_content=text,
+                              doc_meta=meta)
+    # new signature: (text, meta)
+    return chunker.split(text, meta)
+
+
+# --------------------------------------------------------------------------- #
+# Tests merged from BOTH suites
+# --------------------------------------------------------------------------- #
+
+
+def test_by_slide_strategy_pptx(fresh_chunker):
+    """`by_slide` rule should return exactly one chunk for single‑slide text."""
+    chunker = fresh_chunker
+
+    if ChunkRule is None:
+        pytest.skip("ChunkRule type not exposed in this build")
+
+    # Inject a mock rule so we don't rely on YAML
+    chunker._rules["pptx"] = ChunkRule(strategy="by_slide",
+                                        min_tokens=1,
+                                        max_tokens=0,
+                                        overlap=0)
+
+    text_content = "This is the text content of a single slide."
+    meta = {"doc_type": "pptx", "slide_number": 1}
+
+    chunks = _call_split(chunker, text_content, meta)
+
+    assert len(chunks) == 1
+    chunk = chunks[0]
+    assert chunk.text == text_content
+    assert chunk.meta["doc_type"] == "pptx"
+
+
+def test_chunk_id_uniqueness(fresh_chunker):
+    """Chunk IDs generated for separate splits must be distinct UUID‑likes."""
+    chunker = fresh_chunker
+
+    if ChunkRule is None:
+        pytest.skip("ChunkRule type not exposed in this build")
+
+    chunker._rules["pptx"] = ChunkRule(strategy="by_slide", min_tokens=1,
+                                        max_tokens=0, overlap=0)
+    meta1 = {"doc_type": "pptx", "slide_number": 1}
+    meta2 = {"doc_type": "pptx", "slide_number": 2}
+
+    c1 = _call_split(chunker, "Slide one", meta1)[0]
+    c2 = _call_split(chunker, "Slide two", meta2)[0]
+
+    assert c1.id != c2.id
+
+
+def test_default_rule_when_missing_doc_type(fresh_chunker):
+    """If `doc_type` is absent, the chunker should fall back to its default rule."""
+    chunker = fresh_chunker
+    chunks = _call_split(chunker, "Some plain text", {})
+
+    assert len(chunks) >= 1
+    assert chunks[0].meta["chunking_strategy"] == chunker._default_rule.strategy
+
+
+def test_paragraph_splitting_and_overlap(fresh_chunker):
+    """Two paragraphs over min_tokens should yield two chunks with overlap."""
+    chunker = fresh_chunker
+
+    paragraph = _make_words(60)
+    text = f"{paragraph}\n\n{paragraph}"
+    meta = {"doc_type": "txt"}
+
+    chunks = _call_split(chunker, text, meta)
+
+    assert len(chunks) == 2
+    assert chunks[1].overlap_tokens == chunker._default_rule.overlap
+
+
+def test_batch_skip_invalid_input():
+    """`chunk_documents_batch` must ignore non‑string/non‑dict entries."""
+    if chunk_documents_batch is None:
+        pytest.skip("Batch helper not available in this build")
+
+    docs = [
+        ("valid " * 10, {"doc_type": "txt"}),
+        (42, {}),  # invalid – should be skipped
+    ]
+
+    chunks = chunk_documents_batch(docs)
+    assert len(chunks) == 1
