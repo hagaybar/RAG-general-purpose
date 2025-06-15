@@ -75,6 +75,8 @@ def split(text: str, meta: dict) -> list[Chunk]:
         items = [p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()]
     elif rule.strategy in ("by_slide", "slide"):
         items = [s.strip() for s in text.strip().split("\n---\n") if s.strip()]
+    elif rule.strategy in ("split_on_sheets", "sheet", "sheets"):
+        items = [text.strip()] if text.strip() else []
     elif rule.strategy in ("blank_line",):
         items = [b.strip() for b in text.strip().split("\n\n") if b.strip()]
     else:
