@@ -77,6 +77,9 @@ def split(text: str, meta: dict) -> list[Chunk]:
         items = [s.strip() for s in text.strip().split("\n---\n") if s.strip()]
     elif rule.strategy in ("blank_line",):
         items = [b.strip() for b in text.strip().split("\n\n") if b.strip()]
+    elif rule.strategy == "split_on_rows":
+        # Each line in the text is a row from the CSV
+        items = [row.strip() for row in text.strip().split('\n') if row.strip()]
     else:
         raise ValueError(f"Unsupported strategy: {rule.strategy}")
 
