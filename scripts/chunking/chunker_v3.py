@@ -16,7 +16,7 @@ from scripts.chunking.rules_v3 import get_rule
 
 
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
-EMAIL_BLOCK_REGEX = re.compile(r"(?<=\n)(?=\s*(From:|On .* wrote:|>))") # email block separator
+EMAIL_BLOCK_REGEX = re.compile(r"(?=\n\s*(From:|On .* wrote:|>))")  # email block separator
 
 
 
@@ -84,9 +84,7 @@ def split(text: str, meta: dict) -> list[Chunk]:
     elif rule.strategy == "split_on_rows":
         # Each line in the text is a row from the CSV
         items = [row.strip() for row in text.strip().split('\n') if row.strip()]
-    elif rule.strategy in ("by_email_block", "email"):
-        items = [p.strip() for p in EMAIL_BLOCK_REGEX.split(text.strip()) if p.strip()]
-
+    
 
     else:
         raise ValueError(f"Unsupported strategy: {rule.strategy}")
