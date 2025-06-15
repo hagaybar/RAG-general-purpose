@@ -6,7 +6,7 @@
 eml:
   strategy: by_email_block
   min_tokens: 30
-  max_tokens: 250
+  max_tokens: 300
   overlap: 10
 
 # === Word Processing ===
