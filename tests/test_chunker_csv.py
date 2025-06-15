@@ -188,4 +188,3 @@ if __name__ == "__main__":
     finally:
         os.remove(test_path)
 
-```
