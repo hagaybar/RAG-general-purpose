@@ -35,7 +35,8 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
 
     for para in paragraphs:
         para_tokens = _token_count(para)
-
+        print(f"[MERGE] buffer_tokens: {buffer_tokens}, next_para: {para_tokens}")
+        print(f"[RULE] max_tokens: {rule.max_tokens}")
         if buffer_tokens + para_tokens >= rule.max_tokens:
             chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
             chunk_text = " ".join(chunk_tokens)
@@ -70,13 +71,15 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
 def split(text: str, meta: dict) -> list[Chunk]:
     rule = get_rule(meta["doc_type"])
 
-
-    if rule.strategy == "paragraph":
+    if rule.strategy in ("by_paragraph", "paragraph"):
         items = [p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()]
-    elif rule.strategy == "by_slide":
+    elif rule.strategy in ("by_slide", "slide"):
         items = [s.strip() for s in text.strip().split("\n---\n") if s.strip()]
+    elif rule.strategy in ("blank_line",):
+        items = [b.strip() for b in text.strip().split("\n\n") if b.strip()]
     else:
         raise ValueError(f"Unsupported strategy: {rule.strategy}")
 
     return merge_chunks_with_overlap(items, meta, rule)
+
 
