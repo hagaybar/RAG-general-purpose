@@ -2,9 +2,11 @@ import unittest
 from unittest.mock import patch  # MagicMock removed
 import uuid
 
-from scripts.chunking.chunker import BaseChunker, Chunk
+from scripts.chunking.chunker_v2 import BaseChunker, Chunk
 from scripts.chunking.rules import ChunkRule  # For creating mock return value
 
+import pytest
+pytestmark = pytest.mark.legacy_chunker
 
 class TestBaseChunker(unittest.TestCase):
 

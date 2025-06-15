@@ -1,57 +1,117 @@
-email:
-  split_strategy: split_on_blank_lines
-  min_chunk_size: 500
-  notes: ignore quoted replies, exclude headers/footers
+# chunk_rules.yml
+# Only formats with working loaders & chunker strategies are included.
+# Extend when a new loader/strategy lands.
+
+# === E-mail ===
+eml:
+  strategy: by_email_block
+  min_tokens: 30
+  max_tokens: 250
+  overlap: 10
+
+# === Word Processing ===
 docx:
-  split_strategy: split_on_headings
-  min_chunk_size: 700
-  notes: collapse tables row-wise, include headers
+  strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+
+rtf: # handled via the docx loader path
+  strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+
+# === PDFs ===
 pdf:
-  split_strategy: split_on_pages
-  min_chunk_size: 800
-  notes: preserve page boundaries, include headers/footers
-txt:
-  split_strategy: split_on_blank_lines
-  min_chunk_size: 400
-  notes: simple text processing, exclude headers/footers
-html:
-  split_strategy: split_on_headings
-  min_chunk_size: 600
-  notes: preserve semantic structure, include headers
-md:
-  split_strategy: split_on_headings
-  min_chunk_size: 500
-  notes: markdown-aware splitting, include headers
-csv:
-  split_strategy: split_on_rows
-  min_chunk_size: 1000
-  notes: group related rows, detect delimiter automatically, include headers
-json:
-  split_strategy: split_on_objects
-  min_chunk_size: 300
-  notes: preserve object integrity, exclude headers/footers
-xml:
-  split_strategy: split_on_elements
-  min_chunk_size: 600
-  notes: maintain element hierarchy, include headers
+  strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 300
+  overlap: 20
+
+# === PowerPoint ===
 pptx:
-  split_strategy: by_slide
-  token_bounds: [200, 800]
+  strategy: by_slide
+  min_tokens: 100
+  max_tokens: 800
   overlap: 0
-  notes: one chunk per slide, include headers
-xlsx:
-  split_strategy: split_on_sheets
-  min_chunk_size: 1200
-  notes: separate sheets, preserve structure, include headers
-rtf:
-  split_strategy: split_on_headings
-  min_chunk_size: 600
-  notes: similar to docx handling, include headers
+
+# === Plain text ===
+txt:
+  strategy: by_paragraph
+  min_tokens: 40
+  max_tokens: 300
+  overlap: 15
+
+# === test rule ===
+
+test_txt_small:
+  strategy: blank_line
+  min_tokens: 30
+  max_tokens: 100
+  overlap: 0
+
+
+# New blocks from File A (alphabetical order)
+
+# group related rows, detect delimiter automatically, include headers
+csv:
+  strategy: split_on_rows
+  min_tokens: 150
+  max_tokens: 800
+  overlap: 20
+
+# preserve semantic structure, include headers
+html:
+  strategy: split_on_headings
+  min_tokens: 150
+  max_tokens: 760
+  overlap: 20
+
+# preserve object integrity, exclude headers/footers
+json:
+  strategy: split_on_objects
+  min_tokens: 150
+  max_tokens: 460
+  overlap: 20
+
+# group by time periods, exclude headers/footers
 log:
-  split_strategy: split_on_timestamp
-  min_chunk_size: 500
-  notes: group by time periods, exclude headers/footers
+  strategy: split_on_timestamp
+  min_tokens: 180
+  max_tokens: 660
+  overlap: 20
+
+# markdown-aware splitting, include headers
+md:
+  strategy: split_on_headings
+  min_tokens: 150
+  max_tokens: 660
+  overlap: 20
+
+# preserve function boundaries, exclude headers/footers
 py:
-  split_strategy: split_on_functions
-  min_chunk_size: 300
-  notes: preserve function boundaries, exclude headers/footers
+  strategy: split_on_functions
+  min_tokens: 150
+  max_tokens: 460
+  overlap: 20
+
+# separate sheets, preserve structure, include headers
+xlsx:
+  strategy: split_on_sheets
+  min_tokens: 150
+  max_tokens: 800
+  overlap: 20
+
+# maintain element hierarchy, include headers
+xml:
+  strategy: split_on_elements
+  min_tokens: 150
+  max_tokens: 760
+  overlap: 20
+
+default:
+  strategy: by_paragraph
+  min_tokens: 50
+  max_tokens: 250
+  overlap: 20

@@ -3,6 +3,8 @@ from pathlib import Path
 from scripts.ingestion.pdf import load_pdf
 from scripts.ingestion.models import UnsupportedFileError
 
+pytestmark = pytest.mark.legacy_chunker
+
 # -------------------------------------------------------------------
 # Fixture paths
 # -------------------------------------------------------------------

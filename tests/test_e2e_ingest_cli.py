@@ -2,6 +2,10 @@
 from pathlib import Path
 from typer.testing import CliRunner
 
+import pytest
+pytestmark = pytest.mark.legacy_chunker
+
+
 import sys
 import os
 import shutil

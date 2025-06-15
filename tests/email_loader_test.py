@@ -1,10 +1,12 @@
 import unittest
+import pytest
 from unittest.mock import patch, mock_open, MagicMock
 import os
 from pathlib import Path
 import sys
 import tempfile
 
+pytestmark = pytest.mark.legacy_chunker
 
 # Go up one level from tests to the project root
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
