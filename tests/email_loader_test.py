@@ -40,7 +40,7 @@ class TestLoadEml(unittest.TestCase):
         
         # Check metadata structure
         self.assertIsInstance(metadata, dict)
-        self.assertEqual(set(metadata.keys()), {"source", "content_type"})
+        self.assertEqual(set(metadata.keys()), {"source", "content_type", "doc_type"})
         self.assertEqual(metadata["source"], str(self.plain_email_path))
         self.assertEqual(metadata["content_type"], "email")
     
@@ -55,9 +55,9 @@ class TestLoadEml(unittest.TestCase):
         # Check that we get empty text
         self.assertEqual(text, "")
         
-        # Check metadata structure - Assert metadata keys are exactly {"source", "content_type"}
+        # Check metadata structure - Assert metadata keys are exactly {"source", "content_type", "doc_type"}
         self.assertIsInstance(metadata, dict)
-        self.assertEqual(set(metadata.keys()), {"source", "content_type"})
+        self.assertEqual(set(metadata.keys()), {"source", "content_type", "doc_type"})
         self.assertEqual(metadata["source"], str(self.empty_email_path))
         self.assertEqual(metadata["content_type"], "email")
     
