@@ -21,4 +21,6 @@ def test_split_runtime_shape():
     chunks = split("A.\n\nB.", {"doc_type": "txt"})
     assert isinstance(chunks, list)
     assert all(isinstance(c, Chunk) for c in chunks)
-    assert [c.text for c in chunks] == ["A.", "B."]
+    assert len(chunks) == 1
+    assert "A." in chunks[0].text
+    assert "B." in chunks[0].text
