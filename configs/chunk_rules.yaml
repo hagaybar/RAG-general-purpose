@@ -32,8 +32,8 @@ pdf:
 # === PowerPoint ===
 pptx:
   strategy: by_slide
-  min_tokens: 100
-  max_tokens: 800
+  min_tokens: 10
+  max_tokens: 80
   overlap: 0
 
 # === Plain text ===
