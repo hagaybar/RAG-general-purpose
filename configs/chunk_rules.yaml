@@ -54,11 +54,11 @@ test_txt_small:
 
 # New blocks from File A (alphabetical order)
 
-# group related rows, detect delimiter automatically, include headers
+# group related rows, detect delimiter automatically, include headers (limits are low for testing)
 csv:
   strategy: split_on_rows
-  min_tokens: 150
-  max_tokens: 800
+  min_tokens: 10
+  max_tokens: 30
   overlap: 20
 
 # preserve semantic structure, include headers
