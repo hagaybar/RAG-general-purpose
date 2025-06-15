@@ -2,7 +2,7 @@ import pytest
 from scripts.chunking import chunker_v3
 from scripts.chunking.models import Chunk
 from scripts.chunking.rules_v3 import get_rule
-
+from scripts.utils.email_utils import clean_email_text
 
 def count_tokens(text: str) -> int:
     return len(text.split())
@@ -13,19 +13,24 @@ def test_chunker_eml_by_email_block():
     raw_email = """
 Hi team,
 
-Just a quick reminder to submit your timesheets by Friday.
+Just a quick reminder that all timesheets must be submitted by Friday at the end of business day. Please take the time to carefully review your entries to ensure all hours worked, project codes, and client billing information are accurate and complete before submission. Late or incomplete timesheets can delay payroll processing and affect your pay schedule, so timely submission is crucial for everyone.
+If you encounter any technical difficulties with the timesheet system, have questions about proper coding procedures, or need clarification on billable versus non-billable hours, please don't hesitate to reach out to the HR department immediately. Our team is available to assist you and ensure your timesheet is processed correctly.
+We truly appreciate your cooperation and commitment to meeting these important deadlines consistently.
 
 Thanks,
 Alice
 
 On Mon, Bob wrote:
 > Hi Alice,
-> Thanks for the update.
-> I'll get it done by EOD.
+> Thanks for the update. I'll get it done by EOD. Let me know if you need anything else.
+> Best regards,
+> Bob
 
 From: carol@example.com
 Subject: RE: Timesheets
-> Absolutely. I'm syncing with my manager now.
+> Absolutely. I'm syncing with my manager now. I'll have everything ready by tomorrow morning.
+> Regards,
+> Carol
 """
 
     meta = {
