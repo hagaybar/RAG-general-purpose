@@ -16,6 +16,8 @@ from scripts.chunking.rules_v3 import get_rule
 
 
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
+EMAIL_BLOCK_REGEX = re.compile(r"\n(?=\s*(From:|On .* wrote:|>))") # email block separator
+
 
 
 
