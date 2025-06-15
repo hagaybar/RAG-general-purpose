@@ -28,6 +28,8 @@ def _token_count(text: str) -> int:
 # --- public API --------------------------------------------------------------
 def split(text: str, meta: dict) -> list[Chunk]:
     rule = get_rule(meta["doc_type"])
+    print(f"CHUNKER_V3: using rule: {rule}")
+
 
     paragraphs = [
         p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()
@@ -41,7 +43,11 @@ def split(text: str, meta: dict) -> list[Chunk]:
     for para in paragraphs:
         para_tokens = _token_count(para)
 
-        if buffer and buffer_tokens + para_tokens > rule.max_tokens:
+        if buffer and buffer_tokens + para_tokens >= rule.max_tokens:
+            # ---- test print outs ----
+            print(f"\nFLUSH triggered: buffer_tokens = {buffer_tokens}, next_para = {para_tokens}")
+            print(f"Buffer paragraphs: {len(buffer)}")
+            print(f"Total tokens if added: {buffer_tokens + para_tokens}")
             # ---- FLUSH current chunk with overlap from previous ----
             chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
             chunk_text = " ".join(chunk_tokens)
@@ -56,6 +62,7 @@ def split(text: str, meta: dict) -> list[Chunk]:
             prev_tail_tokens = chunk_tokens[-rule.overlap:] if rule.overlap else []
 
             # Reset
+            print(f"\nFinal flush: buffer_tokens = {buffer_tokens}")
             buffer = []
             buffer_tokens = 0
 
