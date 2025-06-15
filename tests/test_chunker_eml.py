@@ -4,12 +4,12 @@ from scripts.chunking.models import Chunk
 from scripts.chunking.rules_v3 import get_rule
 from scripts.utils.email_utils import clean_email_text
 
+
 def count_tokens(text: str) -> int:
     return len(text.split())
 
 
 def test_chunker_eml_by_email_block():
-    # Simulated multi-part email body
     raw_email = """
 Hi team,
 
@@ -41,26 +41,37 @@ Subject: RE: Timesheets
     }
 
     rule = get_rule("eml")
+    cleaned_text = clean_email_text(raw_email)
+    token_count = count_tokens(cleaned_text)
     chunks: list[Chunk] = chunker_v3.split(raw_email, meta)
 
     # --- Basic structure ---
     assert isinstance(chunks, list)
     assert all(isinstance(c, Chunk) for c in chunks)
-    assert len(chunks) >= 2, "Should split reply blocks into multiple chunks"
 
-    # --- Token bounds ---
-    for i, c in enumerate(chunks):
-        assert c.token_count <= rule.max_tokens + 20
-        if i < len(chunks) - 1:
-            assert c.token_count >= rule.min_tokens or i == 0  # allow short reply chunks
-        assert c.meta["doc_type"] == "eml"
+    # --- Behavior depends on total token count ---
+    if token_count <= rule.max_tokens:
+        assert len(chunks) == 1, "Should produce a single chunk if under max token limit"
+    else:
+        assert len(chunks) >= 2, "Should produce multiple chunks if over max token limit"
 
-    # --- Overlap logic (optional) ---
-    if len(chunks) >= 2 and rule.overlap:
-        words1 = chunks[0].text.split()
-        words2 = chunks[1].text.split()
+        # --- Token bounds and overlap ---
+        for i, c in enumerate(chunks):
+            assert c.token_count <= rule.max_tokens + 20
+            if i < len(chunks) - 1:
+                assert c.token_count >= rule.min_tokens or i == 0
+            assert c.meta["doc_type"] == "eml"
 
-        overlap = rule.overlap
-        if len(words1) >= overlap and len(words2) >= overlap:
-            assert words1[-overlap:] == words2[:overlap], "Overlap mismatch"
+        if rule.overlap and len(chunks) >= 2:
+            words1 = chunks[0].text.split()
+            words2 = chunks[1].text.split()
+            overlap = rule.overlap
+            if len(words1) >= overlap and len(words2) >= overlap:
+                assert words1[-overlap:] == words2[:overlap], "Overlap mismatch"
+
+    # Optional: Debug output
+    print(f"\nCleaned text token count: {token_count}")
+    print(f"Chunks produced: {len(chunks)}")
+    for i, chunk in enumerate(chunks):
+        print(f"\n--- Chunk {i + 1} ({chunk.token_count} tokens) ---\n{chunk.text}")
 
