@@ -29,42 +29,48 @@ def _token_count(text: str) -> int:
 def split(text: str, meta: dict) -> list[Chunk]:
     rule = get_rule(meta["doc_type"])
 
-    # 1. Split into raw paragraphs
     paragraphs = [
         p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()
     ]
 
-    # 2. Merge into chunks within token bounds
     chunks = []
     buffer = []
     buffer_tokens = 0
+    prev_tail_tokens: list[str] = []
 
     for para in paragraphs:
         para_tokens = _token_count(para)
 
-        # If adding this would exceed max, flush current buffer
         if buffer and buffer_tokens + para_tokens > rule.max_tokens:
-            chunk_text = "\n\n".join(buffer)
-            if buffer_tokens >= rule.min_tokens:
+            # ---- FLUSH current chunk with overlap from previous ----
+            chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
+            chunk_text = " ".join(chunk_tokens)
+            if len(chunk_tokens) >= rule.min_tokens:
                 chunks.append(Chunk(
                     text=chunk_text,
                     meta=meta.copy(),
-                    token_count=buffer_tokens,
+                    token_count=len(chunk_tokens),
                 ))
+
+            # Update overlap tail
+            prev_tail_tokens = chunk_tokens[-rule.overlap:] if rule.overlap else []
+
+            # Reset
             buffer = []
             buffer_tokens = 0
 
-        # Add this para
         buffer.append(para)
         buffer_tokens += para_tokens
 
-    # Flush remainder
+    # ---- Flush remainder ----
     if buffer:
-        chunk_text = "\n\n".join(buffer)
+        chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
+        chunk_text = " ".join(chunk_tokens)
         chunks.append(Chunk(
             text=chunk_text,
             meta=meta.copy(),
-            token_count=buffer_tokens,
+            token_count=len(chunk_tokens),
         ))
 
     return chunks
+
