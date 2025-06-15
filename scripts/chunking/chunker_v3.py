@@ -71,8 +71,12 @@ def split(text: str, meta: dict) -> list[Chunk]:
     rule = get_rule(meta["doc_type"])
 
 
-    paragraphs = [
-        p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()
-    ]
-    return merge_chunks_with_overlap(paragraphs, meta, rule)
+    if rule.strategy == "paragraph":
+        items = [p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()]
+    elif rule.strategy == "by_slide":
+        items = [s.strip() for s in text.strip().split("\n---\n") if s.strip()]
+    else:
+        raise ValueError(f"Unsupported strategy: {rule.strategy}")
+
+    return merge_chunks_with_overlap(items, meta, rule)
 
