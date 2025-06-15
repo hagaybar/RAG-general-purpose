@@ -10,8 +10,8 @@ For this initial step we:
 
 import re
 from typing import Any, Dict, List
-from .models import Chunk
-
+from scripts.chunking.models import Chunk
+from scripts.chunking.rules_v3 import ChunkRule
 from scripts.chunking.rules_v3 import get_rule
 
 
@@ -26,15 +26,8 @@ def _token_count(text: str) -> int:
 
 
 # --- public API --------------------------------------------------------------
-def split(text: str, meta: dict) -> list[Chunk]:
-    rule = get_rule(meta["doc_type"])
-    print(f"CHUNKER_V3: using rule: {rule}")
 
-
-    paragraphs = [
-        p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()
-    ]
-
+def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule) -> list[Chunk]:
     chunks = []
     buffer = []
     buffer_tokens = 0
@@ -43,12 +36,7 @@ def split(text: str, meta: dict) -> list[Chunk]:
     for para in paragraphs:
         para_tokens = _token_count(para)
 
-        if buffer and buffer_tokens + para_tokens >= rule.max_tokens:
-            # ---- test print outs ----
-            print(f"\nFLUSH triggered: buffer_tokens = {buffer_tokens}, next_para = {para_tokens}")
-            print(f"Buffer paragraphs: {len(buffer)}")
-            print(f"Total tokens if added: {buffer_tokens + para_tokens}")
-            # ---- FLUSH current chunk with overlap from previous ----
+        if buffer_tokens + para_tokens >= rule.max_tokens:
             chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
             chunk_text = " ".join(chunk_tokens)
             if len(chunk_tokens) >= rule.min_tokens:
@@ -58,18 +46,13 @@ def split(text: str, meta: dict) -> list[Chunk]:
                     token_count=len(chunk_tokens),
                 ))
 
-            # Update overlap tail
             prev_tail_tokens = chunk_tokens[-rule.overlap:] if rule.overlap else []
-
-            # Reset
-            print(f"\nFinal flush: buffer_tokens = {buffer_tokens}")
             buffer = []
             buffer_tokens = 0
 
         buffer.append(para)
         buffer_tokens += para_tokens
 
-    # ---- Flush remainder ----
     if buffer:
         chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
         chunk_text = " ".join(chunk_tokens)
@@ -80,4 +63,16 @@ def split(text: str, meta: dict) -> list[Chunk]:
         ))
 
     return chunks
+
+
+
+
+def split(text: str, meta: dict) -> list[Chunk]:
+    rule = get_rule(meta["doc_type"])
+
+
+    paragraphs = [
+        p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()
+    ]
+    return merge_chunks_with_overlap(paragraphs, meta, rule)
 
