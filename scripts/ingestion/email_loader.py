@@ -21,4 +21,9 @@ def load_eml(path: str | Path) -> tuple[str, dict]:
     else:
         text = msg.get_body(preferencelist=("plain",)).get_content().strip()
 
-    return text, {"source": str(path), "content_type": "email"}
+    return text, {
+        "source": str(path),
+        "content_type": "email",
+        "doc_type": "eml"  # Required for rule selection
+    }
+

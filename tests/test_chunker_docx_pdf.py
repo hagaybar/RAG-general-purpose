@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from scripts.chunking.chunker_v2 import BaseChunker, Chunk
-from scripts.chunking.rules import ChunkRule, get_rule # Ensure get_rule can be patched if needed, or rules are directly constructed
+from scripts.chunking.rules_v3 import ChunkRule, get_rule
 import pytest
 
 pytestmark = pytest.mark.legacy_chunker
@@ -59,7 +59,7 @@ class TestChunkerDocxPdf(unittest.TestCase):
             overlap=5,
             notes="Test DOCX rule for merging"
         )
-    @patch("scripts.chunking.rules.get_rule")
+    @patch("scripts.chunking.rules_v3.get_rule")
     def test_docx_by_paragraph_strategy(self, mock_get_rule):
         mock_get_rule.return_value = self.docx_rule
         doc_meta = {'doc_type': 'docx'}
@@ -89,7 +89,7 @@ class TestChunkerDocxPdf(unittest.TestCase):
             overlap_tokens = prev_chunk_tokens[-actual_overlap_count:]
             self.assertEqual(current_chunk_tokens[:actual_overlap_count], overlap_tokens)
 
-    @patch("scripts.chunking.rules.get_rule")
+    @patch("scripts.chunking.rules_v3.get_rule")
     def test_pdf_by_paragraph_strategy_with_merge(self, mock_get_rule):
         # PDF rule: by_paragraph, min_tokens: 50, max_tokens: 300, overlap: 20
         # This test will use a specific rule for PDF to test merging.
@@ -124,7 +124,7 @@ class TestChunkerDocxPdf(unittest.TestCase):
         self.assertTrue(merged_chunk_token_count < pdf_merge_rule.max_tokens)
 
 
-    @patch("scripts.chunking.rules.get_rule")
+    @patch("scripts.chunking.rules_v3.get_rule")
     def test_docx_long_paragraph_split_and_overlap(self, mock_get_rule):
         # Rule: min 50, max 60, overlap 10
         docx_split_rule = ChunkRule(split_strategy='by_paragraph', min_tokens=50, max_tokens=60, overlap=10)

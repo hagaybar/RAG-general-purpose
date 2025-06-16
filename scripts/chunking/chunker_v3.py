@@ -13,9 +13,13 @@ from typing import Any, Dict, List
 from scripts.chunking.models import Chunk
 from scripts.chunking.rules_v3 import ChunkRule
 from scripts.chunking.rules_v3 import get_rule
+from scripts.utils.email_utils import clean_email_text
+import spacy
 
 
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
+EMAIL_BLOCK_REGEX = re.compile(r"(\n\s*(?:From:|On .* wrote:))")  # email block separator with capturing group
+
 
 
 
@@ -68,20 +72,36 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
 
 
 
-def split(text: str, meta: dict) -> list[Chunk]:
+def split(text: str, meta: dict, clean_options: dict = None) -> list[Chunk]:
+    if clean_options is None:
+        clean_options = {
+            "remove_quoted_lines": True,
+            "remove_reply_blocks": True,
+            "remove_signature": True,
+            "signature_delimiter": "-- "
+        }
+
+    # Clean the email text using the provided options
+    cleaned_text = clean_email_text(text, **clean_options)
+
     rule = get_rule(meta["doc_type"])
 
     if rule.strategy in ("by_paragraph", "paragraph"):
-        items = [p.strip() for p in PARA_REGEX.split(text.strip()) if p.strip()]
+        items = [p.strip() for p in PARA_REGEX.split(cleaned_text.strip()) if p.strip()]
     elif rule.strategy in ("by_slide", "slide"):
-        items = [s.strip() for s in text.strip().split("\n---\n") if s.strip()]
+        items = [s.strip() for s in cleaned_text.strip().split("\n---\n") if s.strip()]
     elif rule.strategy in ("split_on_sheets", "sheet", "sheets"):
-        items = [text.strip()] if text.strip() else []
+        items = [cleaned_text.strip()] if cleaned_text.strip() else []
     elif rule.strategy in ("blank_line",):
-        items = [b.strip() for b in text.strip().split("\n\n") if b.strip()]
+        items = [b.strip() for b in cleaned_text.strip().split("\n\n") if b.strip()]
     elif rule.strategy == "split_on_rows":
         # Each line in the text is a row from the CSV
-        items = [row.strip() for row in text.strip().split('\n') if row.strip()]
+        items = [row.strip() for row in cleaned_text.strip().split('\n') if row.strip()]
+    elif rule.strategy in ("by_email_block","eml"):
+        # Split the cleaned text into sentences using spaCy
+        nlp = spacy.load("en_core_web_sm")
+        doc = nlp(cleaned_text)
+        items = [sent.text.strip() for sent in doc.sents if sent.text.strip()]
     else:
         raise ValueError(f"Unsupported strategy: {rule.strategy}")
 

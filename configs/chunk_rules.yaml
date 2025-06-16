@@ -5,9 +5,9 @@
 # === E-mail ===
 eml:
   strategy: by_email_block
-  min_tokens: 30
-  max_tokens: 250
-  overlap: 10
+  min_tokens: 20
+  max_tokens: 300
+  overlap: 5
 
 # === Word Processing ===
 docx:

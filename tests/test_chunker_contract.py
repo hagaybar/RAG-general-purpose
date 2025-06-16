@@ -11,7 +11,7 @@ from scripts.chunking.models import Chunk
 def test_split_signature():
     sig = inspect.signature(split)
     params = list(sig.parameters.values())
-    assert [p.name for p in params] == ["text", "meta"]
+    assert [p.name for p in params] == ["text", "meta", "clean_options"]
 
     origin = get_origin(sig.return_annotation) or sig.return_annotation
     assert origin in (list, inspect._empty)
