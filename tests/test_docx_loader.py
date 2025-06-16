@@ -3,7 +3,7 @@ import pytest
 import sys
 import os
 
-pytestmark = pytest.mark.legacy_chunker
+# pytestmark = pytest.mark.legacy_chunker
 
 
 
