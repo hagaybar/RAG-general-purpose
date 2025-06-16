@@ -9,22 +9,23 @@ from sentence_transformers import SentenceTransformer
 
 from scripts.chunking.models import Chunk
 from scripts.core.project_manager import ProjectManager
+from scripts.utils.logger import LoggerManager
 
 class ChunkEmbedder:
     def __init__(self, project: ProjectManager, model_name: str = "BAAI/bge-large-en"):
         self.project = project
         self.model = SentenceTransformer(model_name)
         self.dim = self.model.get_sentence_embedding_dimension()
+        self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
 
     def run(self, chunks: List[Chunk]) -> None:
-        # Group by doc_type
         doc_type_map: Dict[str, List[Chunk]] = {}
         for chunk in chunks:
             doc_type = chunk.meta.get("doc_type", "default")
             doc_type_map.setdefault(doc_type, []).append(chunk)
 
         for doc_type, chunk_group in doc_type_map.items():
-            print(f"Embedding {len(chunk_group)} chunks for doc_type={doc_type}...")
+            self.logger.info(f"Embedding {len(chunk_group)} chunks for doc_type={doc_type}...")
             self._process_doc_type(doc_type, chunk_group)
 
     def _process_doc_type(self, doc_type: str, chunks: List[Chunk]) -> None:
@@ -48,6 +49,7 @@ class ChunkEmbedder:
         for chunk in chunks:
             chunk_id = self._hash_text(chunk.text)
             if chunk_id in existing_ids:
+                self.logger.debug(f"Skipping duplicate chunk {chunk_id[:8]}...")
                 continue
             emb = self.model.encode(chunk.text)
             new_embeddings.append(emb)
@@ -61,9 +63,9 @@ class ChunkEmbedder:
             with open(meta_path, "a", encoding="utf-8") as f:
                 for meta in new_metadata:
                     f.write(json.dumps(meta) + "\n")
-            print(f"Appended {len(new_embeddings)} new vectors to {index_path.name}")
+            self.logger.info(f"Appended {len(new_embeddings)} new vectors to {index_path.name}")
         else:
-            print("No new chunks to embed.")
+            self.logger.info("No new chunks to embed.")
 
     def _hash_text(self, text: str) -> str:
         return hashlib.sha256(text.strip().encode("utf-8")).hexdigest()
