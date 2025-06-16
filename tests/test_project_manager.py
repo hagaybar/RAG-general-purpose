@@ -1,8 +1,6 @@
 import sys
 from pathlib import Path
 import shutil
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
 from scripts.core.project_manager import ProjectManager
 
 def test_project_manager_initialization(tmp_path):
