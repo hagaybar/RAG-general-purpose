@@ -97,5 +97,20 @@ def ingest(
             print("No chunks were generated.")
 
 
+@app.command()
+def embed(project_dir: str):
+    """
+    Embed chunks from project_dir/input/chunks.tsv and store FAISS index and metadata.
+    """
+    from scripts.core.project_manager import ProjectManager
+    from scripts.embeddings import ChunkEmbedder
+
+    project = ProjectManager(project_dir)
+    embedder = ChunkEmbedder(project)
+    chunks = embedder.load_chunks_from_tsv()
+    embedder.run(chunks)
+
+
+
 if __name__ == "__main__":
     app()
