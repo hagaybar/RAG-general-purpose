@@ -1,5 +1,5 @@
 import hashlib
-import os
+import json
 from pathlib import Path
 from typing import List, Dict
 
@@ -8,14 +8,13 @@ import faiss
 from sentence_transformers import SentenceTransformer
 
 from scripts.chunking.models import Chunk
-
+from scripts.core.project_manager import ProjectManager
 
 class ChunkEmbedder:
-    def __init__(self, model_name: str = "BAAI/bge-large-en", faiss_root: str = "data/indexes"):
+    def __init__(self, project: ProjectManager, model_name: str = "BAAI/bge-large-en"):
+        self.project = project
         self.model = SentenceTransformer(model_name)
         self.dim = self.model.get_sentence_embedding_dimension()
-        self.faiss_root = Path(faiss_root)
-        self.faiss_root.mkdir(parents=True, exist_ok=True)
 
     def run(self, chunks: List[Chunk]) -> None:
         # Group by doc_type
@@ -29,8 +28,8 @@ class ChunkEmbedder:
             self._process_doc_type(doc_type, chunk_group)
 
     def _process_doc_type(self, doc_type: str, chunks: List[Chunk]) -> None:
-        index_path = self.faiss_root / f"{doc_type}.faiss"
-        meta_path = self.faiss_root / f"{doc_type}_metadata.jsonl"
+        index_path = self.project.get_faiss_path(doc_type)
+        meta_path = self.project.get_metadata_path(doc_type)
 
         existing_ids = set()
         if index_path.exists():
@@ -38,7 +37,7 @@ class ChunkEmbedder:
             if meta_path.exists():
                 with open(meta_path, "r", encoding="utf-8") as f:
                     for line in f:
-                        meta = eval(line)
+                        meta = json.loads(line)
                         existing_ids.add(meta["id"])
         else:
             index = faiss.IndexFlatL2(self.dim)
@@ -61,7 +60,7 @@ class ChunkEmbedder:
             faiss.write_index(index, str(index_path))
             with open(meta_path, "a", encoding="utf-8") as f:
                 for meta in new_metadata:
-                    f.write(f"{repr(meta)}\n")
+                    f.write(json.dumps(meta) + "\n")
             print(f"Appended {len(new_embeddings)} new vectors to {index_path.name}")
         else:
             print("No new chunks to embed.")
