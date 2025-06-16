@@ -11,16 +11,28 @@ from scripts.utils.logger import LoggerManager, JsonLogFormatter
 # Define a directory for test logs
 TEST_LOG_DIR = "test_logs"
 
-@pytest.fixture(scope="function") # Use "function" scope for cleanup after each test
+@pytest.fixture(scope="function")
 def cleanup_test_logs():
     """Create and clean up the test log directory."""
     if os.path.exists(TEST_LOG_DIR):
+        _cleanup_all_loggers()
         shutil.rmtree(TEST_LOG_DIR)
     os.makedirs(TEST_LOG_DIR, exist_ok=True)
-    yield # This is where the testing happens
-    # Teardown: remove the directory after the test is done
+    yield
     if os.path.exists(TEST_LOG_DIR):
+        _cleanup_all_loggers()
         shutil.rmtree(TEST_LOG_DIR)
+
+def _cleanup_all_loggers():
+    for logger_name in list(logging.Logger.manager.loggerDict.keys()):
+        logger = logging.getLogger(logger_name)
+        for handler in logger.handlers[:]:
+            try:
+                handler.close()
+                logger.removeHandler(handler)
+            except Exception:
+                pass
+
 
 def test_get_logger_returns_same_instance(cleanup_test_logs):
     """Tests that get_logger returns the same logger instance for the same name."""
@@ -149,3 +161,11 @@ def test_logfile_created(cleanup_test_logs):
     with open(log_file_path, 'r') as f:
         content = f.read()
         assert "This message should create a log file." in content, "Log message not found in the created file."
+
+
+def cleanup_logger(name: str):
+    logger = logging.getLogger(name)
+    handlers = logger.handlers[:]
+    for handler in handlers:
+        handler.close()
+        logger.removeHandler(handler)
