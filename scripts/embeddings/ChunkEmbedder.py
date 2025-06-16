@@ -1,5 +1,6 @@
 import hashlib
 import json
+import csv
 from pathlib import Path
 from typing import List, Dict
 
@@ -17,6 +18,33 @@ class ChunkEmbedder:
         self.model = SentenceTransformer(model_name)
         self.dim = self.model.get_sentence_embedding_dimension()
         self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
+
+    def load_chunks_from_tsv(self) -> List[Chunk]:
+        chunks = []
+        chunk_path = self.project.input_dir / "chunks.tsv"
+
+        if not chunk_path.exists():
+            self.logger.error(f"chunks.tsv not found at {chunk_path}")
+            return []
+
+        with open(chunk_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f, delimiter='\t')
+            for row in reader:
+                chunk_id = row.get("chunk_id")
+                doc_id = row.get("doc_id")
+                text = row.get("text", "")
+                meta_json = row.get("meta_json", "{}")
+                try:
+                    meta = json.loads(meta_json)
+                    meta["chunk_id"] = chunk_id
+                    meta["doc_id"] = doc_id
+                    token_count = len(text.split())
+                    chunks.append(Chunk(text=text, meta=meta, token_count=token_count))
+                except Exception as e:
+                    self.logger.warning(f"Failed to load chunk row: {e}")
+
+        self.logger.info(f"Loaded {len(chunks)} chunks from {chunk_path}")
+        return chunks
 
     def run(self, chunks: List[Chunk]) -> None:
         doc_type_map: Dict[str, List[Chunk]] = {}
