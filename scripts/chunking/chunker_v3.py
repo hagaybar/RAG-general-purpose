@@ -9,7 +9,7 @@ For this initial step we:
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from scripts.chunking.models import Chunk
 from scripts.chunking.rules_v3 import ChunkRule
 from scripts.chunking.rules_v3 import get_rule
@@ -18,7 +18,9 @@ import spacy
 # # Logging setup
 # Ensure you have a logger set up for your application
 from scripts.utils.logger import LoggerManager
-logger = LoggerManager.get_logger("chunker")
+# Default logger - will be used if no project-specific logger is provided
+_default_logger = LoggerManager.get_logger("chunker")
+
 # --- regex patterns ----------------------------------------------------------
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
 EMAIL_BLOCK_REGEX = re.compile(r"(\n\s*(?:From:|On .* wrote:))")  # email block separator with capturing group
@@ -31,10 +33,9 @@ def _token_count(text: str) -> int:
     """Very rough token counter; will be replaced by real tokenizer later."""
     return len(text.split())
 
-
-def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule) -> list[Chunk]:
-    from scripts.utils.logger import LoggerManager
-    logger = LoggerManager.get_logger("chunker")
+def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule, logger=None) -> list[Chunk]:
+    if logger is None:
+        logger = _default_logger
 
     doc_id = meta.get('doc_id', 'unknown_doc_id')
     chunks = []
