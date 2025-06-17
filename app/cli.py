@@ -86,7 +86,8 @@ def ingest(
         print(f"Generated {len(all_chunks)} chunks.")
 
         if all_chunks:
-            output_filepath = pathlib.Path("chunks.tsv")
+            output_filepath = folder_path / "input" / "chunks.tsv"
+            output_filepath.parent.mkdir(parents=True, exist_ok=True)
             try:
                 with open(output_filepath, "w", newline="",
                           encoding="utf-8") as tsvfile:

@@ -13,11 +13,23 @@ from scripts.core.project_manager import ProjectManager
 from scripts.utils.logger import LoggerManager
 
 class ChunkEmbedder:
+    # def __init__(self, project: ProjectManager, model_name: str = "BAAI/bge-large-en"):
+    #     self.project = project
+    #     self.model = SentenceTransformer(model_name)
+    #     self.dim = self.model.get_sentence_embedding_dimension()
+    #     self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
+
     def __init__(self, project: ProjectManager, model_name: str = "BAAI/bge-large-en"):
-        self.project = project
-        self.model = SentenceTransformer(model_name)
-        self.dim = self.model.get_sentence_embedding_dimension()
-        self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
+            self.project = project
+            self.model = SentenceTransformer(model_name)
+            self.dim = self.model.get_sentence_embedding_dimension()
+            self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
+
+            self.chunks_path = self.project.get_chunks_path()
+            if not self.chunks_path.exists():
+                self.logger.error(f"Chunk file not found at expected location: {self.chunks_path}")
+                raise FileNotFoundError(f"Chunk file not found: {self.chunks_path}")
+
 
     def load_chunks_from_tsv(self) -> List[Chunk]:
         chunks = []
@@ -55,6 +67,12 @@ class ChunkEmbedder:
         for doc_type, chunk_group in doc_type_map.items():
             self.logger.info(f"Embedding {len(chunk_group)} chunks for doc_type={doc_type}...")
             self._process_doc_type(doc_type, chunk_group)
+    
+    def run_from_file(self) -> None:
+        from scripts.utils.chunk_io import load_chunks  # adjust import path if needed
+        chunks = load_chunks(self.chunks_path)
+        self.run(chunks)
+
 
     def _process_doc_type(self, doc_type: str, chunks: List[Chunk]) -> None:
         index_path = self.project.get_faiss_path(doc_type)
