@@ -6,9 +6,9 @@ import csv  # Added import
 from scripts.ingestion.manager import IngestionManager
 from scripts.chunking.chunker_v3 import split as chunker_split
 from scripts.chunking.models import Chunk
-from scripts.embeddings.ChunkEmbedder import ChunkEmbedder  # adjust if needed
+from scripts.embeddings.ChunkEmbedder import ChunkEmbedder
 from scripts.utils.logger import LoggerManager
-from scripts.core.project_manager import ProjectManager  # adjust if needed
+from scripts.core.project_manager import ProjectManager
 
 
 app = typer.Typer()
@@ -29,14 +29,16 @@ def ingest(
     if not folder_path.is_dir():
         print(f"Error: {folder_path} is not a valid directory.")
         raise typer.Exit(code=1)
-
-    ingestion_manager = IngestionManager()
+    
+    project = ProjectManager(folder_path)
+    ingestion_manager = IngestionManager(log_file=str(project.get_log_path("ingestion")))
     raw_docs = ingestion_manager.ingest_path(folder_path)
 
     # Changed "documents" to "text segments"
     print(f"Ingested {len(raw_docs)} text segments from {folder_path}")
 
     if chunk:
+        print("Chunking is enabled. Proceeding with chunking...")
         if not raw_docs:
             print("No documents were ingested, skipping chunking.")
             raise typer.Exit()
@@ -45,9 +47,11 @@ def ingest(
         all_chunks: list[Chunk] = []
 
         for raw_doc in raw_docs:
+            print(f"Processing document: {raw_doc.metadata.get('source_filepath')}")  # Add this line
             # Ensure doc_id is properly assigned for chunking
             # RawDoc.metadata should contain 'source_filepath'
             doc_id = raw_doc.metadata.get('source_filepath', 'unknown_document')
+            print(f"Processing document: {raw_doc.metadata.get('source_filepath')}")  # Add this line
             if not raw_doc.metadata.get('doc_type'):
                 warning_msg = (
                     f"Warning: doc_type missing in metadata for {doc_id}, "
@@ -71,6 +75,7 @@ def ingest(
                     # clean_options will use default from chunker_v3.split
                 )
                 all_chunks.extend(document_chunks)
+                
             except ValueError as e:
                 error_msg = (
                     f"Skipping chunking for a segment from {doc_id} "
@@ -101,11 +106,11 @@ def ingest(
                                          chk.text, chk.token_count, meta_json_str])
                 print(f"Chunks written to {output_filepath.resolve()}")
             except IOError as e:
-                print(f"Error writing chunks to TSV file: {e}")
+                error_msg = f"Error writing chunks to TSV file: {e}"
+                print(error_msg)
                 raise typer.Exit(code=1)
         else:
             print("No chunks were generated.")
-
 
 @app.command()
 def embed(
