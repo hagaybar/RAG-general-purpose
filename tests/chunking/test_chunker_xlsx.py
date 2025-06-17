@@ -3,7 +3,7 @@ from pathlib import Path
 from scripts.chunking import chunker_v3
 from scripts.chunking.models import Chunk
 
-FIXTURE_DIR = Path(__file__).parent / "fixtures" / "xlsx"
+FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "xlsx"
 FIXTURE_FILE = FIXTURE_DIR / "demo.xlsx"
 
 @pytest.mark.parametrize("file_path", [FIXTURE_FILE])

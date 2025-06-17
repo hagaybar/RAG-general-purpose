@@ -8,7 +8,7 @@ from scripts.ingestion.models import UnsupportedFileError
 # -------------------------------------------------------------------
 # Fixture paths
 # -------------------------------------------------------------------
-FIXTURES_DIR   = Path(__file__).parent / "fixtures" / "pdf"
+FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "pdf"
 SIMPLE_PDF     = FIXTURES_DIR / "simple.pdf"
 ENCRYPTED_PDF  = FIXTURES_DIR / "encrypted.pdf"
 NO_TEXT_PDF    = FIXTURES_DIR / "no_text.pdf"

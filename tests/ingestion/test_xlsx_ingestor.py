@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 from scripts.ingestion.xlsx import XlsxIngestor
 
-FIXTURE_DIR = Path(__file__).parent / "fixtures" / "xlsx"
+FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "xlsx"
 FIXTURE_FILE = FIXTURE_DIR / "demo.xlsx"
 
 @pytest.mark.parametrize("file_path", [FIXTURE_FILE])
