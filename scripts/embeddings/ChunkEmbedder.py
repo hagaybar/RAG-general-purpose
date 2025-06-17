@@ -11,6 +11,7 @@ from sentence_transformers import SentenceTransformer
 from scripts.chunking.models import Chunk
 from scripts.core.project_manager import ProjectManager
 from scripts.utils.logger import LoggerManager
+from scripts.utils.chunks_io import load_chunks
 
 class ChunkEmbedder:
     # def __init__(self, project: ProjectManager, model_name: str = "BAAI/bge-large-en"):
@@ -69,7 +70,6 @@ class ChunkEmbedder:
             self._process_doc_type(doc_type, chunk_group)
     
     def run_from_file(self) -> None:
-        from scripts.utils.chunks_io import load_chunks  # adjust import path if needed
         chunks = load_chunks(self.chunks_path)
         self.run(chunks)
 
