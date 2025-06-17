@@ -6,6 +6,8 @@ import csv  # Added import
 from scripts.ingestion.manager import IngestionManager
 from scripts.chunking.chunker_v3 import split as chunker_split
 from scripts.chunking.models import Chunk
+from scripts.embeddings.ChunkEmbedder import ChunkEmbedder  # adjust if needed
+from scripts.utils.logger import LoggerManager
 
 
 app = typer.Typer()
@@ -104,19 +106,20 @@ def ingest(
 
 
 @app.command()
-def embed(project_dir: str):
+def embed(
+    project_dir: pathlib.Path = typer.Argument(..., help="Path to the project directory")
+):
     """
-    Embed chunks from project_dir/input/chunks.tsv and store FAISS index and metadata.
+    Embeds chunks.tsv in the given project and saves FAISS index + metadata.
     """
-    from scripts.core.project_manager import ProjectManager
-    from scripts.embeddings import ChunkEmbedder
+    logger = LoggerManager.get_logger("embedder")
 
-    project = ProjectManager(project_dir)
-    embedder = ChunkEmbedder(project)
-    chunks = embedder.load_chunks_from_tsv()
-    embedder.run(chunks)
+    if not project_dir.is_dir():
+        logger.error(f"Provided project_dir does not exist: {project_dir}")
+        raise typer.Exit(code=1)
 
-
+    embedder = ChunkEmbedder(project_dir=project_dir)
+    embedder.run()
 
 if __name__ == "__main__":
     app()
