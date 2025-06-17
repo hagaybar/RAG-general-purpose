@@ -32,6 +32,7 @@ def _token_count(text: str) -> int:
 # --- public API --------------------------------------------------------------
 
 def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule) -> list[Chunk]:
+    doc_id = meta.get('doc_id', 'unknown_doc_id')
     chunks = []
     buffer = []
     buffer_tokens = 0
@@ -46,9 +47,10 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
             chunk_text = " ".join(chunk_tokens)
             if len(chunk_tokens) >= rule.min_tokens:
                 chunks.append(Chunk(
+                    doc_id=doc_id,
                     text=chunk_text,
                     meta=meta.copy(),
-                    token_count=len(chunk_tokens),
+                    token_count=len(chunk_tokens)
                 ))
 
             prev_tail_tokens = chunk_tokens[-rule.overlap:] if rule.overlap else []
@@ -62,9 +64,10 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
         chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
         chunk_text = " ".join(chunk_tokens)
         chunks.append(Chunk(
+            doc_id=doc_id,
             text=chunk_text,
             meta=meta.copy(),
-            token_count=len(chunk_tokens),
+            token_count=len(chunk_tokens)
         ))
 
     return chunks
@@ -73,6 +76,11 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
 
 
 def split(text: str, meta: dict, clean_options: dict = None) -> list[Chunk]:
+    # Validate doc_type presence in meta
+    doc_type = meta.get('doc_type')
+    if not doc_type: # Covers None or empty string
+        raise ValueError("`doc_type` must be present in `meta` and non-empty to determine chunking strategy.")
+
     if clean_options is None:
         clean_options = {
             "remove_quoted_lines": True,

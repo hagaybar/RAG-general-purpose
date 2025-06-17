@@ -4,7 +4,8 @@ import json  # Added import
 import csv  # Added import
 
 from scripts.ingestion.manager import IngestionManager
-from scripts.chunking.chunker_v2 import BaseChunker, Chunk  # Added import
+from scripts.chunking.chunker_v3 import split as chunker_split
+from scripts.chunking.models import Chunk
 
 
 app = typer.Typer()
@@ -38,7 +39,6 @@ def ingest(
             raise typer.Exit()
 
         print("Chunking ingested documents...")
-        chunker = BaseChunker()
         all_chunks: list[Chunk] = []
 
         for raw_doc in raw_docs:
@@ -55,11 +55,17 @@ def ingest(
                 # BaseChunker will raise error if doc_type is missing.
 
             try:
-                # This metadata should include 'doc_type'
-                document_chunks = chunker.split(
-                    doc_id=doc_id,
-                    text_content=raw_doc.content,
-                    doc_meta=raw_doc.metadata
+                # Ensure raw_doc.metadata contains 'doc_id' as expected by chunker_v3.py.
+                # The 'doc_id' key should ideally be populated by the IngestionManager or here if not.
+                # For now, we rely on 'source_filepath' being in metadata and chunker_v3 using meta.get('doc_id').
+                # Let's ensure 'doc_id' is explicitly set in the metadata passed to the chunker for clarity.
+                current_meta = raw_doc.metadata.copy()
+                current_meta['doc_id'] = doc_id # doc_id is from raw_doc.metadata.get('source_filepath', ...)
+
+                document_chunks = chunker_split(
+                    text=raw_doc.content,
+                    meta=current_meta
+                    # clean_options will use default from chunker_v3.split
                 )
                 all_chunks.extend(document_chunks)
             except ValueError as e:
@@ -83,12 +89,12 @@ def ingest(
                 with open(output_filepath, "w", newline="",
                           encoding="utf-8") as tsvfile:
                     writer = csv.writer(tsvfile, delimiter='\t')
-                    header = ['chunk_id', 'doc_id', 'text', 'meta_json']
+                    header = ['chunk_id', 'doc_id', 'text', 'token_count', 'meta_json']
                     writer.writerow(header)
                     for chk in all_chunks:
                         meta_json_str = json.dumps(chk.meta)
                         writer.writerow([chk.id, chk.doc_id,
-                                         chk.text, meta_json_str])
+                                         chk.text, chk.token_count, meta_json_str])
                 print(f"Chunks written to {output_filepath.resolve()}")
             except IOError as e:
                 print(f"Error writing chunks to TSV file: {e}")
