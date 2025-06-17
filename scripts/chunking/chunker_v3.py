@@ -15,8 +15,11 @@ from scripts.chunking.rules_v3 import ChunkRule
 from scripts.chunking.rules_v3 import get_rule
 from scripts.utils.email_utils import clean_email_text
 import spacy
-
-
+# # Logging setup
+# Ensure you have a logger set up for your application
+from scripts.utils.logger import LoggerManager
+logger = LoggerManager.get_logger("chunker")
+# --- regex patterns ----------------------------------------------------------
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
 EMAIL_BLOCK_REGEX = re.compile(r"(\n\s*(?:From:|On .* wrote:))")  # email block separator with capturing group
 
