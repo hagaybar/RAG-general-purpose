@@ -9,14 +9,19 @@ For this initial step we:
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from scripts.chunking.models import Chunk
 from scripts.chunking.rules_v3 import ChunkRule
 from scripts.chunking.rules_v3 import get_rule
 from scripts.utils.email_utils import clean_email_text
 import spacy
+# # Logging setup
+# Ensure you have a logger set up for your application
+from scripts.utils.logger import LoggerManager
+# Default logger - will be used if no project-specific logger is provided
+_default_logger = LoggerManager.get_logger("chunker")
 
-
+# --- regex patterns ----------------------------------------------------------
 PARA_REGEX = re.compile(r"\n\s*\n")  # one or more blank lines
 EMAIL_BLOCK_REGEX = re.compile(r"(\n\s*(?:From:|On .* wrote:))")  # email block separator with capturing group
 
@@ -28,51 +33,76 @@ def _token_count(text: str) -> int:
     """Very rough token counter; will be replaced by real tokenizer later."""
     return len(text.split())
 
+def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule, logger=None) -> list[Chunk]:
+    if logger is None:
+        logger = _default_logger
 
-# --- public API --------------------------------------------------------------
-
-def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule) -> list[Chunk]:
+    doc_id = meta.get('doc_id', 'unknown_doc_id')
     chunks = []
     buffer = []
     buffer_tokens = 0
     prev_tail_tokens: list[str] = []
 
+    logger.debug(f"Using rule for '{meta['doc_type']}': {rule}")
+
     for para in paragraphs:
         para_tokens = _token_count(para)
-        print(f"[MERGE] buffer_tokens: {buffer_tokens}, next_para: {para_tokens}")
-        print(f"[RULE] max_tokens: {rule.max_tokens}")
+        logger.debug(f"New paragraph: {para_tokens} tokens")
+        logger.debug(f"Buffer before merge check: {buffer_tokens} tokens")
+        logger.debug(f"[RULE] max_tokens: {rule.max_tokens}")
+
         if buffer_tokens + para_tokens >= rule.max_tokens:
             chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
             chunk_text = " ".join(chunk_tokens)
             if len(chunk_tokens) >= rule.min_tokens:
                 chunks.append(Chunk(
+                    doc_id=doc_id,
                     text=chunk_text,
                     meta=meta.copy(),
-                    token_count=len(chunk_tokens),
+                    token_count=len(chunk_tokens)
                 ))
+                logger.debug(f"[MERGE] Created chunk with {len(chunk_tokens)} tokens")
+            else:
+                logger.debug(f"[MERGE] Skipped chunk with only {len(chunk_tokens)} tokens (< min_tokens)")
 
             prev_tail_tokens = chunk_tokens[-rule.overlap:] if rule.overlap else []
             buffer = []
             buffer_tokens = 0
+            logger.debug(f"[MERGE] Tail tokens kept for overlap: {len(prev_tail_tokens)}")
 
         buffer.append(para)
         buffer_tokens += para_tokens
+        logger.debug(f"Added to buffer: {para_tokens} tokens, buffer now {buffer_tokens} tokens")
 
+    # Final flush
     if buffer:
         chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
-        chunk_text = " ".join(chunk_tokens)
-        chunks.append(Chunk(
-            text=chunk_text,
-            meta=meta.copy(),
-            token_count=len(chunk_tokens),
-        ))
+        if chunk_tokens:
+            chunk_text = " ".join(chunk_tokens)
+            chunks.append(Chunk(
+                doc_id=doc_id,
+                text=chunk_text,
+                meta=meta.copy(),
+                token_count=len(chunk_tokens)
+            ))
+            logger.debug(f"[FINAL] Created final chunk with {len(chunk_tokens)} tokens")
+        else:
+            logger.debug("[FINAL] Skipped empty buffer, no final chunk created")
 
+    logger.info(f"Total chunks created: {len(chunks)} for doc_id: {doc_id}")
     return chunks
 
 
 
 
-def split(text: str, meta: dict, clean_options: dict = None) -> list[Chunk]:
+def split(text: str, meta: dict, clean_options: dict = None, logger=None) -> list[Chunk]:
+    if logger is None:
+        logger = _default_logger
+    # Validate doc_type presence in meta
+    doc_type = meta.get('doc_type')
+    if not doc_type: # Covers None or empty string
+        raise ValueError("`doc_type` must be present in `meta` and non-empty to determine chunking strategy.")
+
     if clean_options is None:
         clean_options = {
             "remove_quoted_lines": True,
@@ -104,7 +134,15 @@ def split(text: str, meta: dict, clean_options: dict = None) -> list[Chunk]:
         items = [sent.text.strip() for sent in doc.sents if sent.text.strip()]
     else:
         raise ValueError(f"Unsupported strategy: {rule.strategy}")
+    
 
-    return merge_chunks_with_overlap(items, meta, rule)
+    logger.debug(f"[SPLIT] Raw text length: {len(text)}")
+    logger.debug(f"[SPLIT] Using strategy: {rule.strategy}")
+    logger.debug(f"[SPLIT] Paragraph count: {len(items)}")
+    for i, item in enumerate(items):
+        logger.debug(f"[SPLIT] Paragraph {i+1} ({_token_count(item)} tokens): {repr(item[:60])}...")
+
+
+    return merge_chunks_with_overlap(items, meta, rule, logger)
 
 

@@ -4,7 +4,11 @@ import json  # Added import
 import csv  # Added import
 
 from scripts.ingestion.manager import IngestionManager
-from scripts.chunking.chunker_v2 import BaseChunker, Chunk  # Added import
+from scripts.chunking.chunker_v3 import split as chunker_split
+from scripts.chunking.models import Chunk
+from scripts.embeddings.ChunkEmbedder import ChunkEmbedder
+from scripts.utils.logger import LoggerManager
+from scripts.core.project_manager import ProjectManager
 
 
 app = typer.Typer()
@@ -25,26 +29,37 @@ def ingest(
     if not folder_path.is_dir():
         print(f"Error: {folder_path} is not a valid directory.")
         raise typer.Exit(code=1)
-
-    ingestion_manager = IngestionManager()
+    
+    project = ProjectManager(folder_path)
+    ingestion_manager = IngestionManager(log_file=str(project.get_log_path("ingestion")))
+    chunker_logger = LoggerManager.get_logger("chunker_project", log_file=str(project.get_log_path("chunker")))
+        # Add these debug lines:
+    print(f"Chunker log path: {project.get_log_path('chunker')}")
+    print(f"Chunker log path as string: {str(project.get_log_path('chunker'))}")
+    print("Checking chunker logger handlers...")
+    for handler in chunker_logger.handlers:
+        if hasattr(handler, 'baseFilename'):
+            print(f"Chunker FileHandler baseFilename: {handler.baseFilename}")
     raw_docs = ingestion_manager.ingest_path(folder_path)
 
     # Changed "documents" to "text segments"
     print(f"Ingested {len(raw_docs)} text segments from {folder_path}")
 
     if chunk:
+        print("Chunking is enabled. Proceeding with chunking...")
         if not raw_docs:
             print("No documents were ingested, skipping chunking.")
             raise typer.Exit()
 
         print("Chunking ingested documents...")
-        chunker = BaseChunker()
         all_chunks: list[Chunk] = []
 
         for raw_doc in raw_docs:
+            print(f"Processing document: {raw_doc.metadata.get('source_filepath')}")  # Add this line
             # Ensure doc_id is properly assigned for chunking
             # RawDoc.metadata should contain 'source_filepath'
             doc_id = raw_doc.metadata.get('source_filepath', 'unknown_document')
+            print(f"Processing document: {raw_doc.metadata.get('source_filepath')}")  # Add this line
             if not raw_doc.metadata.get('doc_type'):
                 warning_msg = (
                     f"Warning: doc_type missing in metadata for {doc_id}, "
@@ -55,13 +70,21 @@ def ingest(
                 # BaseChunker will raise error if doc_type is missing.
 
             try:
-                # This metadata should include 'doc_type'
-                document_chunks = chunker.split(
-                    doc_id=doc_id,
-                    text_content=raw_doc.content,
-                    doc_meta=raw_doc.metadata
+                # Ensure raw_doc.metadata contains 'doc_id' as expected by chunker_v3.py.
+                # The 'doc_id' key should ideally be populated by the IngestionManager or here if not.
+                # For now, we rely on 'source_filepath' being in metadata and chunker_v3 using meta.get('doc_id').
+                # Let's ensure 'doc_id' is explicitly set in the metadata passed to the chunker for clarity.
+                current_meta = raw_doc.metadata.copy()
+                current_meta['doc_id'] = doc_id # doc_id is from raw_doc.metadata.get('source_filepath', ...)
+
+                document_chunks = chunker_split(
+                    text=raw_doc.content,
+                    meta=current_meta,
+                    logger=chunker_logger 
+                    # clean_options will use default from chunker_v3.split
                 )
                 all_chunks.extend(document_chunks)
+                
             except ValueError as e:
                 error_msg = (
                     f"Skipping chunking for a segment from {doc_id} "
@@ -78,24 +101,42 @@ def ingest(
         print(f"Generated {len(all_chunks)} chunks.")
 
         if all_chunks:
-            output_filepath = pathlib.Path("chunks.tsv")
+            output_filepath = folder_path / "input" / "chunks.tsv"
+            output_filepath.parent.mkdir(parents=True, exist_ok=True)
             try:
                 with open(output_filepath, "w", newline="",
                           encoding="utf-8") as tsvfile:
                     writer = csv.writer(tsvfile, delimiter='\t')
-                    header = ['chunk_id', 'doc_id', 'text', 'meta_json']
+                    header = ['chunk_id', 'doc_id', 'text', 'token_count', 'meta_json']
                     writer.writerow(header)
                     for chk in all_chunks:
                         meta_json_str = json.dumps(chk.meta)
                         writer.writerow([chk.id, chk.doc_id,
-                                         chk.text, meta_json_str])
+                                         chk.text, chk.token_count, meta_json_str])
                 print(f"Chunks written to {output_filepath.resolve()}")
             except IOError as e:
-                print(f"Error writing chunks to TSV file: {e}")
+                error_msg = f"Error writing chunks to TSV file: {e}"
+                print(error_msg)
                 raise typer.Exit(code=1)
         else:
             print("No chunks were generated.")
 
+@app.command()
+def embed(
+    project_dir: pathlib.Path = typer.Argument(..., help="Path to the project directory")
+):
+    """
+    Embeds chunks.tsv in the given project and saves FAISS index + metadata.
+    """
+    logger = LoggerManager.get_logger("embedder")
+
+    if not project_dir.is_dir():
+        logger.error(f"Provided project_dir does not exist: {project_dir}")
+        raise typer.Exit(code=1)
+    
+    project = ProjectManager(project_dir)
+    embedder = ChunkEmbedder(project)
+    embedder.run_from_file()
 
 if __name__ == "__main__":
     app()

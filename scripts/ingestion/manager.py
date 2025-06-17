@@ -1,13 +1,28 @@
 import pathlib
 import inspect  # Added import
 from typing import List
-
+import logging  
 from . import LOADER_REGISTRY
 from .models import RawDoc, UnsupportedFileError
-
+from scripts.utils.logger import LoggerManager
+from pathlib import Path
 
 class IngestionManager:
+    def __init__(self, log_file: Path | None = None):
+        """
+        Initializes the IngestionManager.
+        This manager is responsible for ingesting documents from a specified path.
+        It uses a registry of loaders to handle different file types.
+        """
+        print(f"IngestionManager received log_file: {log_file}")  # Add this
+        self.logger = LoggerManager.get_logger("ingestion", log_file=str(log_file))
+        print(f"Logger created, checking handlers...")  # Add this
+        for handler in self.logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                print(f"FileHandler baseFilename: {handler.baseFilename}")  # Add this
+
     def ingest_path(self, path: str | pathlib.Path) -> List[RawDoc]:
+        self.logger.info(f"Starting ingestion from: {path.resolve()}")
         if not isinstance(path, pathlib.Path):
             path = pathlib.Path(path)
 
@@ -34,6 +49,8 @@ class IngestionManager:
                                 RawDoc(content=text_segment,
                                        metadata=final_meta)
                             )
+                            self.logger.debug(f"Ingested segment: {len(raw_docs)} total")
+
                     else:
                         # Handle function-based loaders
                         # Assuming: (content: str, metadata: dict)
@@ -47,9 +64,12 @@ class IngestionManager:
                         raw_docs.append(
                             RawDoc(content=content, metadata=final_meta)
                         )
+                        self.logger.debug(f"Ingested segment from {item} (function loader): {len(raw_docs)} total")
+
                 except UnsupportedFileError as e:
-                    print(f"Skipping unsupported file {item}: {e}")
+                    self.logger.warning(f"Loader for {item.suffix} is not callable. Found error: {e} Skipping.")
                 except Exception as e:
                     # Or handle more gracefully
-                    print(f"Error loading {item}: {e}")
+                    # print(f"Error loading {item}: {e}")
+                    self.logger.warning(f"Error loading {item}: {e}")
         return raw_docs
