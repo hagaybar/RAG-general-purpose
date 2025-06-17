@@ -69,7 +69,7 @@ class ChunkEmbedder:
             self._process_doc_type(doc_type, chunk_group)
     
     def run_from_file(self) -> None:
-        from scripts.utils.chunk_io import load_chunks  # adjust import path if needed
+        from scripts.utils.chunks_io import load_chunks  # adjust import path if needed
         chunks = load_chunks(self.chunks_path)
         self.run(chunks)
 
