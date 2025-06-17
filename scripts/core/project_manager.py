@@ -1,7 +1,6 @@
 from pathlib import Path
 from scripts.utils.config_loader import ConfigLoader
 
-
 class ProjectManager:
     """
     Represents a RAG project workspace with its own config, input, and output directories.
@@ -33,5 +32,12 @@ class ProjectManager:
         return self.metadata_dir / f"{doc_type}_metadata.jsonl"
 
     def get_log_path(self, module: str, run_id: str | None = None) -> Path:
+        """
+        Returns the path for a log file under the project-specific output/logs/ directory.
+        If run_id is provided, it appends it to the filename.
+        """
         name = f"{module}.log" if not run_id else f"{module}_{run_id}.log"
         return self.logs_dir / name
+            
+    def get_chunks_path(self) -> Path:
+        return self.root_dir / "input" / "chunks.tsv"

@@ -8,6 +8,7 @@ from scripts.chunking.chunker_v3 import split as chunker_split
 from scripts.chunking.models import Chunk
 from scripts.embeddings.ChunkEmbedder import ChunkEmbedder  # adjust if needed
 from scripts.utils.logger import LoggerManager
+from scripts.core.project_manager import ProjectManager  # adjust if needed
 
 
 app = typer.Typer()
@@ -118,9 +119,10 @@ def embed(
     if not project_dir.is_dir():
         logger.error(f"Provided project_dir does not exist: {project_dir}")
         raise typer.Exit(code=1)
-
-    embedder = ChunkEmbedder(project_dir=project_dir)
-    embedder.run()
+    
+    project = ProjectManager(project_dir)
+    embedder = ChunkEmbedder(project)
+    embedder.run_from_file()
 
 if __name__ == "__main__":
     app()
