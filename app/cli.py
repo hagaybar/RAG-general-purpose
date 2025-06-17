@@ -32,6 +32,14 @@ def ingest(
     
     project = ProjectManager(folder_path)
     ingestion_manager = IngestionManager(log_file=str(project.get_log_path("ingestion")))
+    chunker_logger = LoggerManager.get_logger("chunker_project", log_file=str(project.get_log_path("chunker")))
+        # Add these debug lines:
+    print(f"Chunker log path: {project.get_log_path('chunker')}")
+    print(f"Chunker log path as string: {str(project.get_log_path('chunker'))}")
+    print("Checking chunker logger handlers...")
+    for handler in chunker_logger.handlers:
+        if hasattr(handler, 'baseFilename'):
+            print(f"Chunker FileHandler baseFilename: {handler.baseFilename}")
     raw_docs = ingestion_manager.ingest_path(folder_path)
 
     # Changed "documents" to "text segments"
@@ -71,7 +79,8 @@ def ingest(
 
                 document_chunks = chunker_split(
                     text=raw_doc.content,
-                    meta=current_meta
+                    meta=current_meta,
+                    logger=chunker_logger 
                     # clean_options will use default from chunker_v3.split
                 )
                 all_chunks.extend(document_chunks)

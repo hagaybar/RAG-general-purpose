@@ -95,8 +95,9 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
 
 
 
-
-def split(text: str, meta: dict, clean_options: dict = None) -> list[Chunk]:
+def split(text: str, meta: dict, clean_options: dict = None, logger=None) -> list[Chunk]:
+    if logger is None:
+        logger = _default_logger
     # Validate doc_type presence in meta
     doc_type = meta.get('doc_type')
     if not doc_type: # Covers None or empty string
@@ -142,6 +143,6 @@ def split(text: str, meta: dict, clean_options: dict = None) -> list[Chunk]:
         logger.debug(f"[SPLIT] Paragraph {i+1} ({_token_count(item)} tokens): {repr(item[:60])}...")
 
 
-    return merge_chunks_with_overlap(items, meta, rule)
+    return merge_chunks_with_overlap(items, meta, rule, logger)
 
 
