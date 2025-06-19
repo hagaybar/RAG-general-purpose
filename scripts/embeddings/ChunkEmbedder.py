@@ -25,6 +25,9 @@ class ChunkEmbedder:
             self.model = SentenceTransformer(model_name)
             self.dim = self.model.get_sentence_embedding_dimension()
             self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
+            self.skip_duplicates = self.project.config.get("embedding.skip_duplicates", True)
+            self.logger.info(f"Duplicate skipping is {'enabled' if self.skip_duplicates else 'disabled'}")
+
 
             self.chunks_path = self.project.get_chunks_path()
             if not self.chunks_path.exists():
@@ -94,7 +97,7 @@ class ChunkEmbedder:
 
         for chunk in chunks:
             chunk_id = self._hash_text(chunk.text)
-            if chunk_id in existing_ids:
+            if self.skip_duplicates and chunk_id in existing_ids:
                 self.logger.debug(f"Skipping duplicate chunk {chunk_id[:8]}...")
                 continue
             emb = self.model.encode(chunk.text)
