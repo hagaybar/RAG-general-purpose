@@ -47,9 +47,9 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
 
     for para in paragraphs:
         para_tokens = _token_count(para)
-        logger.debug(f"New paragraph: {para_tokens} tokens")
-        logger.debug(f"Buffer before merge check: {buffer_tokens} tokens")
-        logger.debug(f"[RULE] max_tokens: {rule.max_tokens}")
+        # logger.debug(f"New paragraph: {para_tokens} tokens")
+        # logger.debug(f"Buffer before merge check: {buffer_tokens} tokens")
+        # logger.debug(f"[RULE] max_tokens: {rule.max_tokens}")
 
         if buffer_tokens + para_tokens >= rule.max_tokens:
             chunk_tokens = " ".join(prev_tail_tokens + buffer).split()
@@ -61,18 +61,18 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
                     meta=meta.copy(),
                     token_count=len(chunk_tokens)
                 ))
-                logger.debug(f"[MERGE] Created chunk with {len(chunk_tokens)} tokens")
+                # logger.debug(f"[MERGE] Created chunk with {len(chunk_tokens)} tokens")
             else:
                 logger.debug(f"[MERGE] Skipped chunk with only {len(chunk_tokens)} tokens (< min_tokens)")
 
             prev_tail_tokens = chunk_tokens[-rule.overlap:] if rule.overlap else []
             buffer = []
             buffer_tokens = 0
-            logger.debug(f"[MERGE] Tail tokens kept for overlap: {len(prev_tail_tokens)}")
+            # logger.debug(f"[MERGE] Tail tokens kept for overlap: {len(prev_tail_tokens)}")
 
         buffer.append(para)
         buffer_tokens += para_tokens
-        logger.debug(f"Added to buffer: {para_tokens} tokens, buffer now {buffer_tokens} tokens")
+        # logger.debug(f"Added to buffer: {para_tokens} tokens, buffer now {buffer_tokens} tokens")
 
     # Final flush
     if buffer:
@@ -85,11 +85,12 @@ def merge_chunks_with_overlap(paragraphs: list[str], meta: dict, rule: ChunkRule
                 meta=meta.copy(),
                 token_count=len(chunk_tokens)
             ))
-            logger.debug(f"[FINAL] Created final chunk with {len(chunk_tokens)} tokens")
+            # logger.debug(f"[FINAL] Created final chunk with {len(chunk_tokens)} tokens")
         else:
-            logger.debug("[FINAL] Skipped empty buffer, no final chunk created")
+            pass
+            # logger.debug("[FINAL] Skipped empty buffer, no final chunk created")
 
-    logger.info(f"Total chunks created: {len(chunks)} for doc_id: {doc_id}")
+    # logger.info(f"Total chunks created: {len(chunks)} for doc_id: {doc_id}")
     return chunks
 
 
@@ -136,11 +137,11 @@ def split(text: str, meta: dict, clean_options: dict = None, logger=None) -> lis
         raise ValueError(f"Unsupported strategy: {rule.strategy}")
     
 
-    logger.debug(f"[SPLIT] Raw text length: {len(text)}")
-    logger.debug(f"[SPLIT] Using strategy: {rule.strategy}")
-    logger.debug(f"[SPLIT] Paragraph count: {len(items)}")
-    for i, item in enumerate(items):
-        logger.debug(f"[SPLIT] Paragraph {i+1} ({_token_count(item)} tokens): {repr(item[:60])}...")
+    # logger.debug(f"[SPLIT] Raw text length: {len(text)}")
+    # logger.debug(f"[SPLIT] Using strategy: {rule.strategy}")
+    # logger.debug(f"[SPLIT] Paragraph count: {len(items)}")
+    # for i, item in enumerate(items):
+    #     logger.debug(f"[SPLIT] Paragraph {i+1} ({_token_count(item)} tokens): {repr(item[:60])}...")
 
 
     return merge_chunks_with_overlap(items, meta, rule, logger)

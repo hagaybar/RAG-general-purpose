@@ -3,6 +3,7 @@ import json
 import csv
 from pathlib import Path
 from typing import List, Dict
+from glob import glob
 
 import numpy as np
 import faiss
@@ -21,18 +22,17 @@ class ChunkEmbedder:
     #     self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
 
     def __init__(self, project: ProjectManager, model_name: str = "BAAI/bge-large-en"):
-            self.project = project
-            self.model = SentenceTransformer(model_name)
-            self.dim = self.model.get_sentence_embedding_dimension()
-            self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
-            self.skip_duplicates = self.project.config.get("embedding.skip_duplicates", True)
-            self.logger.info(f"Duplicate skipping is {'enabled' if self.skip_duplicates else 'disabled'}")
+        self.project = project
+        self.model = SentenceTransformer(model_name)
+        self.dim = self.model.get_sentence_embedding_dimension()
+        self.logger = LoggerManager.get_logger("embedder", log_file=self.project.get_log_path("embedder"))
+        
+        self.skip_duplicates = self.project.config.get("embedding.skip_duplicates", True)
+        self.logger.info(f"Duplicate skipping is {'enabled' if self.skip_duplicates else 'disabled'}")
 
+        # Optional: Set default path for backward compatibility, but don't enforce its existence here
+        self.chunks_path = self.project.get_chunks_path()
 
-            self.chunks_path = self.project.get_chunks_path()
-            if not self.chunks_path.exists():
-                self.logger.error(f"Chunk file not found at expected location: {self.chunks_path}")
-                raise FileNotFoundError(f"Chunk file not found: {self.chunks_path}")
 
 
     def load_chunks_from_tsv(self) -> List[Chunk]:
@@ -75,6 +75,17 @@ class ChunkEmbedder:
     def run_from_file(self) -> None:
         chunks = load_chunks(self.chunks_path)
         self.run(chunks)
+
+    def run_from_folder(self) -> None:
+        chunk_files = list(self.project.input_dir.glob("chunks_*.tsv"))
+        if not chunk_files:
+            self.logger.warning("No chunks_*.tsv files found in input directory.")
+            return
+
+        for path in chunk_files:
+            self.logger.info(f"Loading chunks from: {path.name}")
+            chunks = load_chunks(path)
+            self.run(chunks)
 
 
     def _process_doc_type(self, doc_type: str, chunks: List[Chunk]) -> None:
