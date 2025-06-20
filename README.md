@@ -25,11 +25,18 @@ See the full [Roadmap](docs/rag_prototype_roadmap.md) for detailed design and f
 
 ## 🚀 Quick Start
 
+For detailed project setup, directory structure, and `config.yml` configuration, please see [Project Setup and Configuration](docs/project_setup.md).
+
 ```bash
 # 1. Clone & install
 git clone https://github.com/your‑org/rag‑pipeline.git
 cd rag‑pipeline
-poetry install          # or: pip install -r requirements.txt
+# Poetry is the recommended method for managing dependencies and ensuring a consistent environment.
+poetry install
+
+# Alternatively, you can use pip with requirements.txt,
+# but ensure it includes all necessary packages (see "Requirements" section below).
+# pip install -r requirements.txt
 
 # 2. Launch Streamlit UI
 poetry run streamlit run app/ui_streamlit.py   # default browser opens
@@ -54,14 +61,25 @@ rag‑pipeline/
 ```
 
 For a full tree and design conventions, check the [Codebase Structure](docs/rag_prototype_roadmap.md#10  repository--codebase-structure).
+**(Note: This link currently appears to be broken as `docs/rag_prototype_roadmap.md` is missing.)**
 
 ---
 
 ## 🛠️ Requirements
 
-* **Python 3.12**
-* **Tesseract OCR** (optional, for image ingestion) – install via your OS package manager.
+**System & Python:**
+* **Python 3.12** (pip should be available as part of your Python installation)
+* **Tesseract OCR** (optional, for image ingestion). Install via your OS package manager. For example:
+    * Debian/Ubuntu: `sudo apt-get install tesseract-ocr`
+    * macOS (using Homebrew): `brew install tesseract`
 * For OpenAI or other API models: set `OPENAI_API_KEY` or relevant environment variables.
+
+**Python Dependencies:**
+Poetry is the recommended tool for installing and managing Python dependencies. It ensures all required packages, including `streamlit` and `typer`, are installed correctly by using the `pyproject.toml` file.
+
+If you choose to use `pip install -r requirements.txt` instead of Poetry:
+* Be aware that `requirements.txt` may not always be up-to-date with all interactive dependencies like `streamlit` and `typer`. For full functionality, these packages would need to be included.
+* It is recommended to generate `requirements.txt` from `pyproject.toml` if maintaining this installation path.
 
 ---
 
